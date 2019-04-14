@@ -1,0 +1,3029 @@
+Disassembly Listing for flash_rw
+Generated From:
+I:/pic_tutorial/projects/flash_ew.X/dist/default/debug/flash_ew.X.debug.elf
+19 Mar 2019 11:01:07 PM
+
+---  I:/pic_tutorial/projects/flash_ew.X/uart_layer.c  --------------------------------------------------
+1:             #include <xc.h>
+2:             #include "uart_layer.h"
+3:             
+4:             void uart_init(uint16_t gen_reg, unsigned sync,unsigned brgh, unsigned brg16){
+5:                 
+6:                 TRISCbits.RC7=1;
+0D38  8E94     BSF TRISC, 7, ACCESS
+7:                 TRISCbits.RC6=1;
+0D3A  8C94     BSF TRISC, 6, ACCESS
+8:                 
+9:                 SPBRGH = (gen_reg & 0xFF00) >> 8;
+0D3C  0100     MOVLB 0x0
+0D3E  5181     MOVF c, W, BANKED
+0D40  6EB0     MOVWF SPBRGH, ACCESS
+10:                SPBRG = gen_reg & 0x00FF;
+0D42  C080     MOVFF __pcstackBANK0, SPBRG
+0D44  FFAF     NOP
+11:                
+12:                RCSTAbits.CREN = 1;
+0D46  88AB     BSF RCSTA, 4, ACCESS
+13:                RCSTAbits.SPEN = 1;
+0D48  8EAB     BSF RCSTA, 7, ACCESS
+14:                BAUDCONbits.BRG16 = brg16;
+0D4A  0100     MOVLB 0x0
+0D4C  B186     BTFSC addr, 0, BANKED
+0D4E  D002     BRA 0xD54
+0D50  96B8     BCF BAUDCON, 3, ACCESS
+0D52  D001     BRA 0xD56
+0D54  86B8     BSF BAUDCON, 3, ACCESS
+15:                
+16:                TXSTAbits.SYNC = sync;
+0D56  0100     MOVLB 0x0
+0D58  B182     BTFSC divisor, 0, BANKED
+0D5A  D002     BRA 0xD60
+0D5C  98AC     BCF TXSTA, 4, ACCESS
+0D5E  D001     BRA 0xD62
+0D60  88AC     BSF TXSTA, 4, ACCESS
+17:                TXSTAbits.BRGH = brgh;
+0D62  0100     MOVLB 0x0
+0D64  B184     BTFSC counter, 0, BANKED
+0D66  D002     BRA 0xD6C
+0D68  94AC     BCF TXSTA, 2, ACCESS
+0D6A  D001     BRA 0xD6E
+0D6C  84AC     BSF TXSTA, 2, ACCESS
+18:                TXSTAbits.TXEN = 1;
+0D6E  8AAC     BSF TXSTA, 5, ACCESS
+19:                
+20:                IPR1bits.RCIP=1;
+0D70  8A9F     BSF IPR1, 5, ACCESS
+21:                PIE1bits.RCIE=1;  
+0D72  8A9D     BSF PIE1, 5, ACCESS
+22:            }
+0D74  0012     RETURN 0
+23:            
+24:            void uart_send(uint8_t c){
+0E4E  0100     MOVLB 0x0
+0E50  6F80     MOVWF __pcstackBANK0, BANKED
+25:                TXREG=c;
+0E52  C080     MOVFF __pcstackBANK0, TXREG
+0E54  FFAD     NOP
+26:                for(;TXSTAbits.TRMT==0;){
+0E56  D001     BRA 0xE5A
+0E5A  B2AC     BTFSC TXSTA, 1, ACCESS
+27:                    Nop();
+0E58  F000     NOP
+0E5A  B2AC     BTFSC TXSTA, 1, ACCESS
+0E5C  0012     RETURN 0
+0E5E  D7FC     BRA 0xE58
+28:                }
+29:            }
+30:            
+31:            void uart_receiver(uint8_t *c, bool *rx_flag){
+32:                
+33:                if(RCSTAbits.FERR){
+34:                    uint8_t er = RCREG;
+35:                }else if(RCSTAbits.OERR){
+36:                    RCSTAbits.CREN=0;
+37:                    RCSTAbits.CREN=1;
+38:                }else{
+39:                    *c = RCREG;
+40:                    *rx_flag = true;
+41:                }
+42:                
+43:            }
+44:            
+45:            void uart_send_array(uint8_t *c,uint16_t len){
+46:                for(uint8_t i = 0; i < len;i++){
+0C9C  0E00     MOVLW 0x0
+0C9E  0100     MOVLB 0x0
+0CA0  6F87     MOVWF sp, BANKED
+0CA2  D017     BRA 0xCD2
+0CCE  0100     MOVLB 0x0
+0CD0  2B87     INCF sp, F, BANKED
+0CD2  0100     MOVLB 0x0
+0CD4  5187     MOVF sp, W, BANKED
+0CD6  0100     MOVLB 0x0
+0CD8  6F85     MOVWF quotient, BANKED
+0CDA  6B86     CLRF addr, BANKED
+0CDC  0100     MOVLB 0x0
+0CDE  5183     MOVF len, W, BANKED
+0CE0  0100     MOVLB 0x0
+0CE2  5D85     SUBWF quotient, W, BANKED
+0CE4  0100     MOVLB 0x0
+0CE6  5184     MOVF counter, W, BANKED
+0CE8  0100     MOVLB 0x0
+0CEA  5986     SUBWFB addr, W, BANKED
+0CEC  B0D8     BTFSC STATUS, 0, ACCESS
+0CEE  0012     RETURN 0
+0CF0  D7D9     BRA 0xCA4
+47:                    uart_send(c[i]);
+0CA4  0100     MOVLB 0x0
+0CA6  5187     MOVF sp, W, BANKED
+0CA8  0D01     MULLW 0x1
+0CAA  C081     MOVFF c, quotient
+0CAC  F085     NOP
+0CAE  C082     MOVFF divisor, addr
+0CB0  F086     NOP
+0CB2  50F3     MOVF PROD, W, ACCESS
+0CB4  0100     MOVLB 0x0
+0CB6  2785     ADDWF quotient, F, BANKED
+0CB8  50F4     MOVF PRODH, W, ACCESS
+0CBA  0100     MOVLB 0x0
+0CBC  2386     ADDWFC addr, F, BANKED
+0CBE  C085     MOVFF quotient, TBLPTR
+0CC0  FFF6     NOP
+0CC2  C086     MOVFF addr, TBLPTRH
+0CC4  FFF7     NOP
+0CC6  0008     TBLRD*
+0CC8  50F5     MOVF TABLAT, W, ACCESS
+0CCA  EC27     CALL 0xE4E, 0
+0CCC  F007     NOP
+0CCE  0100     MOVLB 0x0
+0CD0  2B87     INCF sp, F, BANKED
+0CD2  0100     MOVLB 0x0
+0CD4  5187     MOVF sp, W, BANKED
+0CD6  0100     MOVLB 0x0
+0CD8  6F85     MOVWF quotient, BANKED
+0CDA  6B86     CLRF addr, BANKED
+0CDC  0100     MOVLB 0x0
+0CDE  5183     MOVF len, W, BANKED
+0CE0  0100     MOVLB 0x0
+0CE2  5D85     SUBWF quotient, W, BANKED
+0CE4  0100     MOVLB 0x0
+0CE6  5184     MOVF counter, W, BANKED
+0CE8  0100     MOVLB 0x0
+0CEA  5986     SUBWFB addr, W, BANKED
+0CEC  B0D8     BTFSC STATUS, 0, ACCESS
+0CEE  0012     RETURN 0
+0CF0  D7D9     BRA 0xCA4
+48:                }
+49:            }
+50:            void uart_send_string(uint8_t *c){
+51:                uint8_t i=0;
+0CF2  0E00     MOVLW 0x0
+0CF4  0100     MOVLB 0x0
+0CF6  6F83     MOVWF len, BANKED
+52:                for(;c[i] != '\0';){
+0CF8  D010     BRA 0xD1A
+0D1A  0100     MOVLB 0x0
+0D1C  5183     MOVF len, W, BANKED
+0D1E  0D01     MULLW 0x1
+0D20  50F3     MOVF PROD, W, ACCESS
+0D22  0100     MOVLB 0x0
+0D24  2581     ADDWF c, W, BANKED
+0D26  6ED9     MOVWF FSR2, ACCESS
+0D28  50F4     MOVF PRODH, W, ACCESS
+0D2A  0100     MOVLB 0x0
+0D2C  2182     ADDWFC divisor, W, BANKED
+0D2E  6EDA     MOVWF FSR2H, ACCESS
+0D30  50DF     MOVF INDF2, W, ACCESS
+0D32  B4D8     BTFSC STATUS, 2, ACCESS
+0D34  0012     RETURN 0
+0D36  D7E1     BRA 0xCFA
+53:                    uart_send(c[i]);
+0CFA  0100     MOVLB 0x0
+0CFC  5183     MOVF len, W, BANKED
+0CFE  0D01     MULLW 0x1
+0D00  50F3     MOVF PROD, W, ACCESS
+0D02  0100     MOVLB 0x0
+0D04  2581     ADDWF c, W, BANKED
+0D06  6ED9     MOVWF FSR2, ACCESS
+0D08  50F4     MOVF PRODH, W, ACCESS
+0D0A  0100     MOVLB 0x0
+0D0C  2182     ADDWFC divisor, W, BANKED
+0D0E  6EDA     MOVWF FSR2H, ACCESS
+0D10  50DF     MOVF INDF2, W, ACCESS
+0D12  EC27     CALL 0xE4E, 0
+0D14  F007     NOP
+54:                    i++;
+0D16  0100     MOVLB 0x0
+0D18  2B83     INCF len, F, BANKED
+0D1A  0100     MOVLB 0x0
+0D1C  5183     MOVF len, W, BANKED
+0D1E  0D01     MULLW 0x1
+0D20  50F3     MOVF PROD, W, ACCESS
+0D22  0100     MOVLB 0x0
+0D24  2581     ADDWF c, W, BANKED
+0D26  6ED9     MOVWF FSR2, ACCESS
+0D28  50F4     MOVF PRODH, W, ACCESS
+0D2A  0100     MOVLB 0x0
+0D2C  2182     ADDWFC divisor, W, BANKED
+0D2E  6EDA     MOVWF FSR2H, ACCESS
+0D30  50DF     MOVF INDF2, W, ACCESS
+0D32  B4D8     BTFSC STATUS, 2, ACCESS
+0D34  0012     RETURN 0
+0D36  D7E1     BRA 0xCFA
+55:                }
+56:            }
+57:            
+58:            
+59:            
+60:            
+61:            
+62:            
+63:            
+64:            
+65:            
+66:            
+67:            
+68:            
+69:            
+70:            
+71:            
+72:            
+73:            
+74:            
+75:            
+76:            
+77:            
+78:            
+79:            
+80:            
+81:            
+82:            
+83:            
+84:            
+85:            
+86:            
+87:            
+88:            
+89:            
+90:            
+91:            
+92:            
+93:            
+94:            
+95:            
+96:            
+97:            
+98:            
+99:            
+100:           
+101:           
+102:           
+103:           
+104:           
+105:           
+106:           
+107:           
+108:           
+109:           
+110:           
+111:           
+112:           
+113:           
+114:           
+115:           
+116:           
+117:           
+118:           
+119:           
+120:           
+121:           
+122:           
+123:           
+124:           
+125:           
+126:           
+127:           
+128:           
+129:           
+---  I:/pic_tutorial/projects/flash_ew.X/main.c  --------------------------------------------------------
+1:             #include <xc.h>
+2:             #include <p18f4520.h>
+3:             #include <stdint.h>
+4:             #include <stdbool.h>
+5:             #include <stdio.h>
+6:             #include <string.h>
+7:             #include "conbits.h"
+8:             #include "uart_layer.h"
+9:             
+10:            void interrupt high_isr(void);
+11:            void interrupt low_priority low_isr(void);
+12:            
+13:            uint8_t print_buffer[256] = {0}; // buffer to print stuff to serial
+14:            const uint8_t program_start[15]="Program start\n\r";
+15:            //uint16_t flash_read;
+16:            
+17:            uint16_t flash_read(uint16_t flash_addr){
+18:                uint8_t flash_h = 0;
+0C36  0E00     MOVLW 0x0
+0C38  0100     MOVLB 0x0
+0C3A  6F84     MOVWF counter, BANKED
+19:                uint8_t flash_l = 0;
+0C3C  0E00     MOVLW 0x0
+0C3E  0100     MOVLB 0x0
+0C40  6F85     MOVWF quotient, BANKED
+20:                
+21:                TBLPTR = flash_addr + 1;
+0C42  0E01     MOVLW 0x1
+0C44  0100     MOVLB 0x0
+0C46  2580     ADDWF __pcstackBANK0, W, BANKED
+0C48  0100     MOVLB 0x0
+0C4A  6F82     MOVWF divisor, BANKED
+0C4C  0E00     MOVLW 0x0
+0C4E  0100     MOVLB 0x0
+0C50  2181     ADDWFC c, W, BANKED
+0C52  0100     MOVLB 0x0
+0C54  6F83     MOVWF len, BANKED
+0C56  C082     MOVFF divisor, TBLPTR
+0C58  FFF6     NOP
+0C5A  C083     MOVFF len, TBLPTRH
+0C5C  FFF7     NOP
+0C5E  6AF8     CLRF TBLPTRU, ACCESS
+22:                asm(" TBLRD*");
+0C60  0008     TBLRD*
+23:                flash_h = TABLAT;
+0C62  CFF5     MOVFF TABLAT, counter
+0C64  F084     NOP
+24:               
+25:                //sprintf(print_buffer,"0x%02X",flash_read);
+26:                //uart_send_string(print_buffer);
+27:                
+28:                TBLPTR = flash_addr;
+0C66  C080     MOVFF __pcstackBANK0, TBLPTR
+0C68  FFF6     NOP
+0C6A  C081     MOVFF c, TBLPTRH
+0C6C  FFF7     NOP
+0C6E  6AF8     CLRF TBLPTRU, ACCESS
+29:                asm(" TBLRD*");
+0C70  0008     TBLRD*
+30:                flash_l = TABLAT;
+0C72  CFF5     MOVFF TABLAT, quotient
+0C74  F085     NOP
+31:                //sprintf(print_buffer,"%02X\n\r",flash_read);
+32:                //uart_send_string(print_buffer);
+33:                
+34:                return (flash_h << 8) | flash_l;
+0C76  0100     MOVLB 0x0
+0C78  5185     MOVF quotient, W, BANKED
+0C7A  C084     MOVFF counter, divisor
+0C7C  F082     NOP
+0C7E  0100     MOVLB 0x0
+0C80  6B83     CLRF len, BANKED
+0C82  C082     MOVFF divisor, len
+0C84  F083     NOP
+0C86  0100     MOVLB 0x0
+0C88  6B82     CLRF divisor, BANKED
+0C8A  0100     MOVLB 0x0
+0C8C  1182     IORWF divisor, W, BANKED
+0C8E  0100     MOVLB 0x0
+0C90  6F80     MOVWF __pcstackBANK0, BANKED
+0C92  0100     MOVLB 0x0
+0C94  5183     MOVF len, W, BANKED
+0C96  0100     MOVLB 0x0
+0C98  6F81     MOVWF c, BANKED
+0C9A  0012     RETURN 0
+35:                
+36:            }
+37:            
+38:            void flash_block_delete(uint16_t addr){
+39:                
+40:                TBLPTR = addr;
+0E10  C080     MOVFF __pcstackBANK0, TBLPTR
+0E12  FFF6     NOP
+0E14  C081     MOVFF c, TBLPTRH
+0E16  FFF7     NOP
+0E18  6AF8     CLRF TBLPTRU, ACCESS
+41:                
+42:                EECON1bits.EEPGD = 1;
+0E1A  8EA6     BSF EECON1, 7, ACCESS
+43:                EECON1bits.CFGS = 0;
+0E1C  9CA6     BCF EECON1, 6, ACCESS
+44:                EECON1bits.WREN = 1;
+0E1E  84A6     BSF EECON1, 2, ACCESS
+45:                EECON1bits.FREE = 1;
+0E20  88A6     BSF EECON1, 4, ACCESS
+46:                
+47:                INTCONbits.GIEH = 0; 
+0E22  9EF2     BCF INTCON, 7, ACCESS
+48:                
+49:                EECON2 = 0x55;
+0E24  0E55     MOVLW 0x55
+0E26  6EA7     MOVWF EECON2, ACCESS
+50:                EECON2 = 0xAA;
+0E28  0EAA     MOVLW 0xAA
+0E2A  6EA7     MOVWF EECON2, ACCESS
+51:                
+52:                EECON1bits.WR = 1;
+0E2C  82A6     BSF EECON1, 1, ACCESS
+53:            
+54:                EECON1bits.WREN = 0;
+0E2E  94A6     BCF EECON1, 2, ACCESS
+55:                INTCONbits.GIEH = 1;
+0E30  8EF2     BSF INTCON, 7, ACCESS
+56:            }
+0E32  0012     RETURN 0
+57:            
+58:            void flash_block_commit(void){
+59:                
+60:                EECON1bits.EEPGD = 1;
+0E34  8EA6     BSF EECON1, 7, ACCESS
+61:                EECON1bits.CFGS = 0;
+0E36  9CA6     BCF EECON1, 6, ACCESS
+62:                EECON1bits.WREN = 1;
+0E38  84A6     BSF EECON1, 2, ACCESS
+63:                EECON1bits.FREE = 0;
+0E3A  98A6     BCF EECON1, 4, ACCESS
+64:                
+65:                INTCONbits.GIEH = 0; 
+0E3C  9EF2     BCF INTCON, 7, ACCESS
+66:                
+67:                EECON2 = 0x55;
+0E3E  0E55     MOVLW 0x55
+0E40  6EA7     MOVWF EECON2, ACCESS
+68:                EECON2 = 0xAA;
+0E42  0EAA     MOVLW 0xAA
+0E44  6EA7     MOVWF EECON2, ACCESS
+69:                
+70:                EECON1bits.WR = 1;
+0E46  82A6     BSF EECON1, 1, ACCESS
+71:            
+72:                EECON1bits.WREN = 0;
+0E48  94A6     BCF EECON1, 2, ACCESS
+73:                INTCONbits.GIEH = 1;
+0E4A  8EF2     BSF INTCON, 7, ACCESS
+74:            }
+0E4C  0012     RETURN 0
+75:            
+76:            void flash_block_write(uint16_t addr,uint8_t *flash_data_buff){
+77:                int8_t i = 64;
+08DC  0E40     MOVLW 0x40
+08DE  0100     MOVLB 0x0
+08E0  6FCC     MOVWF i, BANKED
+78:                uint8_t flash_store_buff[64] = {0};
+08E2  EE20     LFSR 2, 0x1
+08E4  F001     NOP
+08E6  EE10     LFSR 1, 0x8A
+08E8  F08A     NOP
+08EA  0E3F     MOVLW 0x3F
+08EC  CFDB     MOVFF PLUSW2, PLUSW1
+08EE  FFE3     NOP
+08F0  06E8     DECF WREG, F, ACCESS
+08F2  E2FC     BC 0x8EC
+79:                uint16_t flash_ptr = addr;
+08F4  C086     MOVFF addr, flash_ptr
+08F6  F0CA     NOP
+08F8  C087     MOVFF sp, 0xCB
+08FA  F0CB     NOP
+80:                
+81:             //READ_BLOCK   
+82:                for(i = 0; i<64 ;i++){
+08FC  0E00     MOVLW 0x0
+08FE  0100     MOVLB 0x0
+0900  6FCC     MOVWF i, BANKED
+0902  0100     MOVLB 0x0
+0904  51CC     MOVF i, W, BANKED
+0906  0A80     XORLW 0x80
+0908  0F40     ADDLW 0x40
+090A  B0D8     BTFSC STATUS, 0, ACCESS
+090C  D017     BRA 0x93C
+0936  0100     MOVLB 0x0
+0938  2BCC     INCF i, F, BANKED
+093A  D7E3     BRA 0x902
+83:                    TBLPTR = flash_ptr;
+090E  C0CA     MOVFF flash_ptr, TBLPTR
+0910  FFF6     NOP
+0912  C0CB     MOVFF 0xCB, TBLPTRH
+0914  FFF7     NOP
+0916  6AF8     CLRF TBLPTRU, ACCESS
+84:                    asm(" TBLRD*");
+0918  0008     TBLRD*
+85:                    flash_store_buff[i] = TABLAT;
+091A  0100     MOVLB 0x0
+091C  51CC     MOVF i, W, BANKED
+091E  0D01     MULLW 0x1
+0920  0E8A     MOVLW 0x8A
+0922  24F3     ADDWF PROD, W, ACCESS
+0924  6ED9     MOVWF FSR2, ACCESS
+0926  0E00     MOVLW 0x0
+0928  20F4     ADDWFC PRODH, W, ACCESS
+092A  6EDA     MOVWF FSR2H, ACCESS
+092C  CFF5     MOVFF TABLAT, INDF2
+092E  FFDF     NOP
+86:                    flash_ptr++;   
+0930  0100     MOVLB 0x0
+0932  4BCA     INFSNZ flash_ptr, F, BANKED
+0934  2BCB     INCF 0xCB, F, BANKED
+87:                }
+88:                
+89:            //MODIFY_WORD
+90:                
+91:            //ERASE_BLOCK
+92:                flash_block_delete(addr);
+093C  C086     MOVFF addr, __pcstackBANK0
+093E  F080     NOP
+0940  C087     MOVFF sp, c
+0942  F081     NOP
+0944  EC08     CALL 0xE10, 0
+0946  F007     NOP
+93:                flash_ptr--; 
+0948  0100     MOVLB 0x0
+094A  07CA     DECF flash_ptr, F, BANKED
+094C  A0D8     BTFSS STATUS, 0, ACCESS
+094E  07CB     DECF 0xCB, F, BANKED
+94:                asm(" TBLRD*"); 
+0950  0008     TBLRD*
+95:            //WRITE_BYTE_TO_HREGS
+96:                flash_ptr = addr;
+0952  C086     MOVFF addr, flash_ptr
+0954  F0CA     NOP
+0956  C087     MOVFF sp, 0xCB
+0958  F0CB     NOP
+97:                for(i = 0; i<32 ;i++){
+095A  0E00     MOVLW 0x0
+095C  0100     MOVLB 0x0
+095E  6FCC     MOVWF i, BANKED
+0960  0100     MOVLB 0x0
+0962  51CC     MOVF i, W, BANKED
+0964  0A80     XORLW 0x80
+0966  0F60     ADDLW 0x60
+0968  B0D8     BTFSC STATUS, 0, ACCESS
+096A  D026     BRA 0x9B8
+09B2  0100     MOVLB 0x0
+09B4  2BCC     INCF i, F, BANKED
+09B6  D7D4     BRA 0x960
+98:                    TBLPTR = flash_ptr;
+096C  C0CA     MOVFF flash_ptr, TBLPTR
+096E  FFF6     NOP
+0970  C0CB     MOVFF 0xCB, TBLPTRH
+0972  FFF7     NOP
+0974  6AF8     CLRF TBLPTRU, ACCESS
+99:                    TABLAT  = flash_data_buff[i];
+0976  0100     MOVLB 0x0
+0978  51CC     MOVF i, W, BANKED
+097A  0100     MOVLB 0x0
+097C  6F80     MOVWF __pcstackBANK0, BANKED
+097E  6B81     CLRF c, BANKED
+0980  BF80     BTFSC __pcstackBANK0, 7, BANKED
+0982  0781     DECF c, F, BANKED
+0984  0E00     MOVLW 0x0
+0986  0100     MOVLB 0x0
+0988  6F83     MOVWF len, BANKED
+098A  0E01     MOVLW 0x1
+098C  6F82     MOVWF divisor, BANKED
+098E  ECD8     CALL 0xDB0, 0
+0990  F006     NOP
+0992  0100     MOVLB 0x0
+0994  5180     MOVF __pcstackBANK0, W, BANKED
+0996  0100     MOVLB 0x0
+0998  2588     ADDWF flash_data_buff, W, BANKED
+099A  6ED9     MOVWF FSR2, ACCESS
+099C  0100     MOVLB 0x0
+099E  5181     MOVF c, W, BANKED
+09A0  0100     MOVLB 0x0
+09A2  2189     ADDWFC f, W, BANKED
+09A4  6EDA     MOVWF FSR2H, ACCESS
+09A6  50DF     MOVF INDF2, W, ACCESS
+09A8  6EF5     MOVWF TABLAT, ACCESS
+100:                   asm("TBLWT*");
+09AA  000C     TBLWT*
+101:                   flash_ptr++;   
+09AC  0100     MOVLB 0x0
+09AE  4BCA     INFSNZ flash_ptr, F, BANKED
+09B0  2BCB     INCF 0xCB, F, BANKED
+102:               }
+103:           //PROGRAM_MEMORY   
+104:               flash_block_commit();
+09B8  EC1A     CALL 0xE34, 0
+09BA  F007     NOP
+105:               
+106:           //WRITE_BYTE_TO_HREGS
+107:               for(i = 32; i<64 ;i++){
+09BC  0E20     MOVLW 0x20
+09BE  0100     MOVLB 0x0
+09C0  6FCC     MOVWF i, BANKED
+09C2  0100     MOVLB 0x0
+09C4  51CC     MOVF i, W, BANKED
+09C6  0A80     XORLW 0x80
+09C8  0F40     ADDLW 0x40
+09CA  B0D8     BTFSC STATUS, 0, ACCESS
+09CC  D026     BRA 0xA1A
+0A14  0100     MOVLB 0x0
+0A16  2BCC     INCF i, F, BANKED
+0A18  D7D4     BRA 0x9C2
+108:                   TBLPTR = flash_ptr;
+09CE  C0CA     MOVFF flash_ptr, TBLPTR
+09D0  FFF6     NOP
+09D2  C0CB     MOVFF 0xCB, TBLPTRH
+09D4  FFF7     NOP
+09D6  6AF8     CLRF TBLPTRU, ACCESS
+109:                   TABLAT  = flash_data_buff[i];
+09D8  0100     MOVLB 0x0
+09DA  51CC     MOVF i, W, BANKED
+09DC  0100     MOVLB 0x0
+09DE  6F80     MOVWF __pcstackBANK0, BANKED
+09E0  6B81     CLRF c, BANKED
+09E2  BF80     BTFSC __pcstackBANK0, 7, BANKED
+09E4  0781     DECF c, F, BANKED
+09E6  0E00     MOVLW 0x0
+09E8  0100     MOVLB 0x0
+09EA  6F83     MOVWF len, BANKED
+09EC  0E01     MOVLW 0x1
+09EE  6F82     MOVWF divisor, BANKED
+09F0  ECD8     CALL 0xDB0, 0
+09F2  F006     NOP
+09F4  0100     MOVLB 0x0
+09F6  5180     MOVF __pcstackBANK0, W, BANKED
+09F8  0100     MOVLB 0x0
+09FA  2588     ADDWF flash_data_buff, W, BANKED
+09FC  6ED9     MOVWF FSR2, ACCESS
+09FE  0100     MOVLB 0x0
+0A00  5181     MOVF c, W, BANKED
+0A02  0100     MOVLB 0x0
+0A04  2189     ADDWFC f, W, BANKED
+0A06  6EDA     MOVWF FSR2H, ACCESS
+0A08  50DF     MOVF INDF2, W, ACCESS
+0A0A  6EF5     MOVWF TABLAT, ACCESS
+110:                   asm("TBLWT*");
+0A0C  000C     TBLWT*
+111:                   flash_ptr++;   
+0A0E  0100     MOVLB 0x0
+0A10  4BCA     INFSNZ flash_ptr, F, BANKED
+0A12  2BCB     INCF 0xCB, F, BANKED
+112:               }
+113:           //PROGRAM_MEMORY   
+114:               flash_block_commit();
+0A1A  EC1A     CALL 0xE34, 0
+0A1C  F007     NOP
+115:               
+116:           }
+0A1E  0012     RETURN 0
+117:           
+118:           void main(void){
+119:               uint8_t flash_data[64] = {0};
+0A20  EE21     LFSR 2, 0x141
+0A22  F041     NOP
+0A24  EE11     LFSR 1, 0x100
+0A26  F000     NOP
+0A28  0E3F     MOVLW 0x3F
+0A2A  CFDB     MOVFF PLUSW2, PLUSW1
+0A2C  FFE3     NOP
+0A2E  06E8     DECF WREG, F, ACCESS
+0A30  E2FC     BC 0xA2A
+120:               
+121:               OSCCONbits.IDLEN = 1;
+0A32  8ED3     BSF OSCCON, 7, ACCESS
+122:               OSCCONbits.IRCF = 0x07;
+0A34  88D3     BSF OSCCON, 4, ACCESS
+0A36  8AD3     BSF OSCCON, 5, ACCESS
+0A38  8CD3     BSF OSCCON, 6, ACCESS
+123:               OSCCONbits.SCS = 0x03;
+0A3A  0E03     MOVLW 0x3
+0A3C  12D3     IORWF OSCCON, F, ACCESS
+124:               while(OSCCONbits.IOFS!=1); // 8Mhz
+0A3E  A4D3     BTFSS OSCCON, 2, ACCESS
+0A40  D7FE     BRA 0xA3E
+125:               
+126:               TRISB=0;    // b port as output
+0A42  0E00     MOVLW 0x0
+0A44  6E93     MOVWF TRISB, ACCESS
+127:               LATB=0x00; // b port low
+0A46  0E00     MOVLW 0x0
+0A48  6E8A     MOVWF LATB, ACCESS
+128:               
+129:               for(uint8_t i = 0; i<64 ;i++){
+0A4A  0E00     MOVLW 0x0
+0A4C  0101     MOVLB 0x1
+0A4E  6F40     MOVWF 0x40, BANKED
+0A50  0E3F     MOVLW 0x3F
+0A52  0101     MOVLB 0x1
+0A54  6540     CPFSGT 0x40, BANKED
+0A56  D001     BRA 0xA5A
+0A58  D00E     BRA 0xA76
+0A70  0101     MOVLB 0x1
+0A72  2B40     INCF 0x40, F, BANKED
+0A74  D7ED     BRA 0xA50
+130:                     flash_data[i] = i; 
+0A5A  0101     MOVLB 0x1
+0A5C  5140     MOVF 0x40, W, BANKED
+0A5E  0D01     MULLW 0x1
+0A60  0E00     MOVLW 0x0
+0A62  24F3     ADDWF PROD, W, ACCESS
+0A64  6ED9     MOVWF FSR2, ACCESS
+0A66  0E01     MOVLW 0x1
+0A68  20F4     ADDWFC PRODH, W, ACCESS
+0A6A  6EDA     MOVWF FSR2H, ACCESS
+0A6C  C140     MOVFF i, INDF2
+0A6E  FFDF     NOP
+131:               }
+132:             
+133:               uart_init(51,0,1,0);//baud 9600
+0A76  0E00     MOVLW 0x0
+0A78  0100     MOVLB 0x0
+0A7A  6F81     MOVWF c, BANKED
+0A7C  0E33     MOVLW 0x33
+0A7E  6F80     MOVWF __pcstackBANK0, BANKED
+0A80  0E00     MOVLW 0x0
+0A82  0100     MOVLB 0x0
+0A84  6F83     MOVWF len, BANKED
+0A86  0E00     MOVLW 0x0
+0A88  6F82     MOVWF divisor, BANKED
+0A8A  0E00     MOVLW 0x0
+0A8C  0100     MOVLB 0x0
+0A8E  6F85     MOVWF quotient, BANKED
+0A90  0E01     MOVLW 0x1
+0A92  6F84     MOVWF counter, BANKED
+0A94  0E00     MOVLW 0x0
+0A96  0100     MOVLB 0x0
+0A98  6F87     MOVWF sp, BANKED
+0A9A  0E00     MOVLW 0x0
+0A9C  6F86     MOVWF addr, BANKED
+0A9E  EC9C     CALL 0xD38, 0
+0AA0  F006     NOP
+134:           
+135:               __delay_ms(2000);
+0AA2  0E15     MOVLW 0x15
+0AA4  0100     MOVLB 0x0
+0AA6  6FCE     MOVWF 0xCE, BANKED
+0AA8  0E4B     MOVLW 0x4B
+0AAA  0100     MOVLB 0x0
+0AAC  6FCD     MOVWF 0xCD, BANKED
+0AAE  0EBE     MOVLW 0xBE
+0AB0  2EE8     DECFSZ WREG, F, ACCESS
+0AB2  D7FE     BRA 0xAB0
+0AB4  2FCD     DECFSZ 0xCD, F, BANKED
+0AB6  D7FC     BRA 0xAB0
+0AB8  2FCE     DECFSZ 0xCE, F, BANKED
+0ABA  D7FA     BRA 0xAB0
+0ABC  F000     NOP
+136:               uart_send_array(program_start,15);
+0ABE  0E09     MOVLW 0x9
+0AC0  0100     MOVLB 0x0
+0AC2  6F81     MOVWF c, BANKED
+0AC4  0E06     MOVLW 0x6
+0AC6  0100     MOVLB 0x0
+0AC8  6F82     MOVWF divisor, BANKED
+0ACA  0E00     MOVLW 0x0
+0ACC  0100     MOVLB 0x0
+0ACE  6F84     MOVWF counter, BANKED
+0AD0  0E0F     MOVLW 0xF
+0AD2  6F83     MOVWF len, BANKED
+0AD4  EC4E     CALL 0xC9C, 0
+0AD6  F006     NOP
+137:               
+138:               RCONbits.IPEN   = 1; 
+0AD8  8ED0     BSF RCON, 7, ACCESS
+139:               INTCONbits.GIEH = 1; 
+0ADA  8EF2     BSF INTCON, 7, ACCESS
+140:               INTCONbits.GIEL = 1;// base interrupt setup
+0ADC  8CF2     BSF INTCON, 6, ACCESS
+141:               
+142:               flash_block_write(0x7fc0,flash_data);
+0ADE  0E7F     MOVLW 0x7F
+0AE0  0100     MOVLB 0x0
+0AE2  6F87     MOVWF sp, BANKED
+0AE4  0EC0     MOVLW 0xC0
+0AE6  6F86     MOVWF addr, BANKED
+0AE8  0E00     MOVLW 0x0
+0AEA  0100     MOVLB 0x0
+0AEC  6F88     MOVWF flash_data_buff, BANKED
+0AEE  0E01     MOVLW 0x1
+0AF0  0100     MOVLB 0x0
+0AF2  6F89     MOVWF f, BANKED
+0AF4  EC6E     CALL 0x8DC, 0
+0AF6  F004     NOP
+143:           
+144:               sprintf(print_buffer,"0x%04X",flash_read(0x7fc4));
+0AF8  0E00     MOVLW 0x0
+0AFA  0100     MOVLB 0x0
+0AFC  6F87     MOVWF sp, BANKED
+0AFE  0E02     MOVLW 0x2
+0B00  0100     MOVLB 0x0
+0B02  6F88     MOVWF flash_data_buff, BANKED
+0B04  0E29     MOVLW 0x29
+0B06  0100     MOVLB 0x0
+0B08  6F89     MOVWF f, BANKED
+0B0A  0E06     MOVLW 0x6
+0B0C  0100     MOVLB 0x0
+0B0E  6F8A     MOVWF flash_store_buff, BANKED
+0B10  0E7F     MOVLW 0x7F
+0B12  0100     MOVLB 0x0
+0B14  6F81     MOVWF c, BANKED
+0B16  0EC4     MOVLW 0xC4
+0B18  6F80     MOVWF __pcstackBANK0, BANKED
+0B1A  EC1B     CALL 0xC36, 0
+0B1C  F006     NOP
+0B1E  C080     MOVFF __pcstackBANK0, 0x8B
+0B20  F08B     NOP
+0B22  C081     MOVFF c, 0x8C
+0B24  F08C     NOP
+0B26  EC19     CALL 0x632, 0
+0B28  F003     NOP
+145:               uart_send_string(print_buffer);
+0B2A  0E00     MOVLW 0x0
+0B2C  0100     MOVLB 0x0
+0B2E  6F81     MOVWF c, BANKED
+0B30  0E02     MOVLW 0x2
+0B32  0100     MOVLB 0x0
+0B34  6F82     MOVWF divisor, BANKED
+0B36  EC79     CALL 0xCF2, 0
+0B38  F006     NOP
+146:           
+147:               for(;;){
+148:               } 
+0B3A  D7FF     BRA 0xB3A
+149:           }
+150:           
+151:           void interrupt high_isr(void){
+0B3C  0006     POP
+152:               INTCONbits.GIEH = 0;
+0B76  9EF2     BCF INTCON, 7, ACCESS
+153:               if(PIR2bits.CMIF == 1){
+0B78  BCA1     BTFSC PIR2, 6, ACCESS
+154:           
+155:                   PIR2bits.CMIF = 0; 
+0B7A  9CA1     BCF PIR2, 6, ACCESS
+156:               }
+157:               if(PIR1bits.ADIF){
+0B7C  BC9E     BTFSC PIR1, 6, ACCESS
+158:           
+159:                   PIR1bits.ADIF = 0;
+0B7E  9C9E     BCF PIR1, 6, ACCESS
+160:               }
+161:               INTCONbits.GIEH = 1;
+0B80  8EF2     BSF INTCON, 7, ACCESS
+162:           }
+0B82  C04E     MOVFF 0x4E, TABLAT
+163:           
+164:           void interrupt low_priority low_isr(void){
+0018  8060     BSF btemp, 0, ACCESS
+165:               INTCONbits.GIEH = 0;
+005E  9EF2     BCF INTCON, 7, ACCESS
+166:               if(PIR1bits.TMR2IF == 1){
+0060  B29E     BTFSC PIR1, 1, ACCESS
+167:           
+168:                   PIR1bits.TMR2IF = 0;
+0062  929E     BCF PIR1, 1, ACCESS
+169:               }  
+170:               INTCONbits.GIEH = 1;
+0064  8EF2     BSF INTCON, 7, ACCESS
+171:           }
+0008  8260     BSF btemp, 1, ACCESS
+0066  C05F     MOVFF 0x5F, TABLAT
+0068  FFF5     NOP
+006A  C05E     MOVFF 0x5E, TBLPTRU
+006C  FFF8     NOP
+006E  C05D     MOVFF 0x5D, TBLPTRH
+0070  FFF7     NOP
+0072  C05C     MOVFF 0x5C, TBLPTR
+0074  FFF6     NOP
+0076  C05B     MOVFF 0x5B, PRODH
+0078  FFF4     NOP
+007A  C05A     MOVFF 0x5A, PROD
+007C  FFF3     NOP
+007E  C059     MOVFF 0x59, FSR2H
+0080  FFDA     NOP
+0082  C058     MOVFF 0x58, FSR2
+0084  FFD9     NOP
+0086  C057     MOVFF 0x57, FSR1H
+0088  FFE2     NOP
+008A  C056     MOVFF 0x56, FSR1
+008C  FFE1     NOP
+008E  C055     MOVFF 0x55, FSR0H
+0090  FFEA     NOP
+0092  C054     MOVFF 0x54, FSR0
+0094  FFE9     NOP
+0096  C053     MOVFF 0x53, PCLATU
+0098  FFFB     NOP
+009A  C052     MOVFF 0x52, PCLATH
+009C  FFFA     NOP
+009E  C051     MOVFF 0x51, BSR
+00A0  FFE0     NOP
+00A2  C050     MOVFF 0x50, WREG
+00A4  FFE8     NOP
+00A6  C04F     MOVFF 0x4F, STATUS
+00A8  FFD8     NOP
+00AA  9060     BCF btemp, 0, ACCESS
+00AC  0010     RETFIE 0
+172:           
+173:           
+174:           
+---  C:/Program Files (x86)/Microchip/xc8/v1.41/sources/common/lwdiv.c  ---------------------------------
+1:             // word unsigned division
+2:             
+3:             unsigned int
+4:             #ifdef __PICC__
+5:             #warning TODO: update cgpic and this file to use the other prototype
+6:             __lwdiv(unsigned int divisor, unsigned int dividend)
+7:             #else
+8:             __lwdiv(unsigned int dividend, unsigned int divisor)
+9:             #endif
+10:            {
+11:            	unsigned int	quotient;
+12:            	unsigned char	counter;
+13:            
+14:            	quotient = 0;
+0BBE  0E00     MOVLW 0x0
+0BC0  0100     MOVLB 0x0
+0BC2  6F86     MOVWF addr, BANKED
+0BC4  0E00     MOVLW 0x0
+0BC6  6F85     MOVWF quotient, BANKED
+15:            	if(divisor != 0) {
+0BC8  0100     MOVLB 0x0
+0BCA  5182     MOVF divisor, W, BANKED
+0BCC  0100     MOVLB 0x0
+0BCE  1183     IORWF len, W, BANKED
+0BD0  B4D8     BTFSC STATUS, 2, ACCESS
+0BD2  D02C     BRA 0xC2C
+16:            		counter = 1;
+0BD4  0E01     MOVLW 0x1
+0BD6  0100     MOVLB 0x0
+0BD8  6F84     MOVWF counter, BANKED
+17:            		while((divisor & 0x8000) == 0) {
+0BDA  D006     BRA 0xBE8
+0BE8  0100     MOVLB 0x0
+0BEA  AF83     BTFSS len, 7, BANKED
+0BEC  D7F7     BRA 0xBDC
+18:            			divisor <<= 1;
+0BDC  0100     MOVLB 0x0
+0BDE  90D8     BCF STATUS, 0, ACCESS
+0BE0  3782     RLCF divisor, F, BANKED
+0BE2  3783     RLCF len, F, BANKED
+19:            			counter++;
+0BE4  0100     MOVLB 0x0
+0BE6  2B84     INCF counter, F, BANKED
+20:            		}
+21:            		do {
+22:            			quotient <<= 1;
+0BEE  0100     MOVLB 0x0
+0BF0  90D8     BCF STATUS, 0, ACCESS
+0BF2  3785     RLCF quotient, F, BANKED
+0BF4  3786     RLCF addr, F, BANKED
+23:            			if(divisor <= dividend) {
+0BF6  0100     MOVLB 0x0
+0BF8  5182     MOVF divisor, W, BANKED
+0BFA  0100     MOVLB 0x0
+0BFC  5D80     SUBWF __pcstackBANK0, W, BANKED
+0BFE  0100     MOVLB 0x0
+0C00  5183     MOVF len, W, BANKED
+0C02  0100     MOVLB 0x0
+0C04  5981     SUBWFB c, W, BANKED
+0C06  A0D8     BTFSS STATUS, 0, ACCESS
+0C08  D00A     BRA 0xC1E
+24:            				dividend -= divisor;
+0C0A  0100     MOVLB 0x0
+0C0C  5182     MOVF divisor, W, BANKED
+0C0E  0100     MOVLB 0x0
+0C10  5F80     SUBWF __pcstackBANK0, F, BANKED
+0C12  0100     MOVLB 0x0
+0C14  5183     MOVF len, W, BANKED
+0C16  0100     MOVLB 0x0
+0C18  5B81     SUBWFB c, F, BANKED
+25:            				quotient |= 1;
+0C1A  0100     MOVLB 0x0
+0C1C  8185     BSF quotient, 0, BANKED
+26:            			}
+27:            			divisor >>= 1;
+0C1E  0100     MOVLB 0x0
+0C20  90D8     BCF STATUS, 0, ACCESS
+0C22  3383     RRCF len, F, BANKED
+0C24  3382     RRCF divisor, F, BANKED
+28:            		} while(--counter != 0);
+0C26  0100     MOVLB 0x0
+0C28  2F84     DECFSZ counter, F, BANKED
+0C2A  D7E1     BRA 0xBEE
+29:            	}
+30:            	return quotient;
+0C2C  C085     MOVFF quotient, __pcstackBANK0
+0C2E  F080     NOP
+0C30  C086     MOVFF addr, c
+0C32  F081     NOP
+31:            }
+0C34  0012     RETURN 0
+---  C:/Program Files (x86)/Microchip/xc8/v1.41/sources/common/isdigit.c  -------------------------------
+1:             #include	<ctype.h>
+2:             
+3:             #ifndef isdigit
+4:             
+5:             #ifdef _CTYPE_BIT_FUNCS_
+6:             
+7:             bit
+8:             isdigit(char c)
+0DE6  0100     MOVLB 0x0
+0DE8  6F82     MOVWF divisor, BANKED
+9:             #else
+10:            int
+11:            isdigit(int c)
+12:            #endif
+13:            {
+14:            	return c <= '9' && c >= '0';
+0DEA  0E00     MOVLW 0x0
+0DEC  0100     MOVLB 0x0
+0DEE  6F81     MOVWF c, BANKED
+0DF0  0E3A     MOVLW 0x3A
+0DF2  0100     MOVLB 0x0
+0DF4  6182     CPFSLT divisor, BANKED
+0DF6  D007     BRA 0xE06
+0DF8  0E2F     MOVLW 0x2F
+0DFA  0100     MOVLB 0x0
+0DFC  6582     CPFSGT divisor, BANKED
+0DFE  D003     BRA 0xE06
+0E00  0E01     MOVLW 0x1
+0E02  0100     MOVLB 0x0
+0E04  6F81     MOVWF c, BANKED
+0E06  C081     MOVFF c, __pcstackBANK0
+0E08  F080     NOP
+0E0A  0100     MOVLB 0x0
+0E0C  3180     RRCF __pcstackBANK0, W, BANKED
+0E0E  0012     RETURN 0
+15:            }
+16:            
+17:            #endif
+---  C:/Program Files (x86)/Microchip/xc8/v1.41/sources/common/doprnt.c  --------------------------------
+1:             #include	<stdio.h>
+2:             #include	<ctype.h>
+3:             #include	<stdlib.h>
+4:             #include	<string.h>
+5:             #include	<stdarg.h>
+6:             #include	<conio.h>
+7:             #include	<sys.h>
+8:             #include	<math.h>
+9:             #include	<float.h>
+10:            
+11:            // disable unused variable warnings
+12:            // the compiler will optimize them away, so no harm is done
+13:            #pragma warning disable 350
+14:            
+15:            /*
+16:             *	doprnt - versions depends on conditional compilation.
+17:             *	Can be customized with defines.
+18:             *
+19:             *	Copyright (c) 2012 Microchip Technology Inc. All rights reserved.
+20:             *
+21:             *	$Header$
+22:             *
+23:             */
+24:            
+25:            #ifndef	CUSTOM_PRINTF
+26:            
+27:             // define all flags, thus enabling all features
+28:            
+29:            #define	BASEM	0xC0
+30:            #define	OPTSIGN	0x00
+31:            #define	SPCSIGN	0x01
+32:            #define	MANSIGN	0x02
+33:            #define	NEGSIGN	0x03
+34:            #define	FILL	0x04
+35:            #define	LEFT	0x08
+36:            #define	LONG	0x10
+37:            #define	UPCASE	0x20
+38:            #define	TEN		0x00
+39:            #define	EIGHT	0x40
+40:            #define	SIXTEEN	0x80
+41:            #define	UNSIGN	0xC0
+42:            #ifdef	__FLOAT
+43:            #define	EFMT	0x100
+44:            #define	GFMT	0x200
+45:            #define	FFMT	0x400
+46:            #endif	// __FLOAT
+47:            #define	ALTERN	0x800
+48:            #define POINTER	0x2000
+49:            #define HEXUPCASE
+50:            #define HEXLOWCASE
+51:            
+52:             // defines for ifdef only, not used as flags
+53:            #define	WIDTH	1		// width used
+54:            #define	STAR	1		// width or precision as an arg
+55:            #define	STRING	1		// %s used
+56:            #define	CHAR	1		// %c used
+57:            #define	PERCPERC	1	// %% used
+58:            #define	SPRINTF	1		// sprintf is used
+59:            #define	PRINTF	1		// printf is used
+60:            #define	MULTRAD	1		// handle multiple radices
+61:            #define	RETVALUE	1	// return value is needed
+62:            
+63:            #else	// CUSTOM_PRINTF
+64:            
+65:            #if	defined(HEXUPCASE) || defined(HEXLOWCASE)
+66:            #define	SIXTEEN
+67:            #endif
+68:            
+69:            #if	defined(HEXUPCASE) && defined(HEXLOWCASE)
+70:            #ifndef UPCASE
+71:            #define	UPCASE
+72:            #endif
+73:            #endif
+74:            
+75:             // make sure we have the right values for each define
+76:            #ifdef	OPTSIGN
+77:            #undef	OPTSIGN
+78:            #define	OPTSIGN	0x00
+79:            #endif
+80:            #ifdef	SPCSIGN
+81:            #undef	SPCSIGN
+82:            #define	SPCSIGN	0x01
+83:            #endif
+84:            #ifdef	MANSIGN
+85:            #undef	MANSIGN
+86:            #define	MANSIGN	0x02
+87:            #define	SPCSIGN	0x01
+88:            #endif
+89:            #ifdef	NEGSIGN
+90:            #undef	NEGSIGN
+91:            #define	NEGSIGN	0x03
+92:            #endif
+93:            #ifdef	FILL
+94:            #define	WIDTH	1
+95:            #undef	FILL
+96:            #define	FILL	0x04
+97:            #endif
+98:            #ifdef	LEFT
+99:            #undef	LEFT
+100:            // LEFT without WIDTH is meaningless
+101:           #ifdef	WIDTH
+102:           #define	LEFT	0x08
+103:           #endif
+104:           #endif
+105:           #ifdef	LONG
+106:           #undef	LONG
+107:           #define	LONG	0x10
+108:           #define	__LONG	1
+109:           #endif
+110:           #ifdef	UPCASE
+111:           #undef	UPCASE
+112:           #define	UPCASE	0x20
+113:           #endif
+114:           #ifdef	TEN	
+115:           #undef	TEN	
+116:           #define	TEN		0x00
+117:           #endif
+118:           #ifdef	EIGHT
+119:           #undef	EIGHT
+120:           #define	EIGHT	0x40
+121:           #endif
+122:           #ifdef	SIXTEEN
+123:           #undef	SIXTEEN
+124:           #define	SIXTEEN	0x80
+125:           #endif
+126:           #ifdef	UNSIGN
+127:           #undef	UNSIGN
+128:           #define	UNSIGN	0xC0
+129:           #endif
+130:           #ifdef	EFMT
+131:           #undef	EFMT
+132:           #define	EFMT	0x100
+133:           #endif
+134:           #ifdef	GFMT
+135:           #undef	GFMT
+136:           #define	GFMT	0x200
+137:           #endif
+138:           #ifdef	FFMT
+139:           #undef	FFMT
+140:           #define	FFMT	0x400
+141:           #endif
+142:           #ifdef	ALTERN
+143:           #undef	ALTERN
+144:           #define	ALTERN	0x800
+145:           #endif
+146:           #ifdef	POINTER
+147:           #undef	POINTER
+148:           #define POINTER	0x2000
+149:           #ifndef	SIXTEEN
+150:           #define	SIXTEEN	0x80
+151:           #endif
+152:           #endif
+153:           #ifdef	PRECISION
+154:           #undef	PRECISION
+155:           #define PRECISION	0x4000
+156:           #endif
+157:           
+158:           #if	defined(TEN) && !defined(EIGHT) && !defined(SIXTEEN) && defined(UNSIGN)
+159:           #undef	UNSIGN
+160:           #define	UNSIGN	0x40
+161:           #define	BASEM	UNSIGN
+162:           #endif
+163:           #if	defined(UNSIGN) && (defined(EIGHT) || defined(SIXTEEN))
+164:           #define	MULTRAD	1
+165:           #define	BASEM	(UNSIGN)
+166:           #endif
+167:           #if	defined(TEN) && !defined(SIXTEEN) && defined(EIGHT) && !defined(UNSIGN)
+168:           #define	BASEM	EIGHT
+169:           #define	MULTRAD	1
+170:           #endif
+171:           #if	defined(TEN) && defined(SIXTEEN) && !defined(EIGHT) && !defined(UNSIGN)
+172:           #define	BASEM	SIXTEEN
+173:           #define	MULTRAD	1
+174:           #endif
+175:           #if	defined(SIXTEEN) && defined(EIGHT) && !defined(BASEM)
+176:           #define	BASEM	(SIXTEEN|EIGHT)
+177:           #define	MULTRAD	1
+178:           #endif
+179:           
+180:           #endif
+181:           
+182:            // float code needs these flags
+183:           #if	defined(EFMT) || defined(GFMT) || defined(FFMT)
+184:           #ifndef	__FLOAT
+185:           #define	__FLOAT	1
+186:           #endif
+187:           #define	FLOATFORMAT	0x700
+188:           #ifdef	PRECISION
+189:           #define	DEFPREC	0x1000
+190:           #endif
+191:           #endif
+192:           
+193:           #ifdef	__FLOAT
+194:           //#ifndef	MANSIGN
+195:           //#define	MANSIGN	0x02
+196:           //#endif
+197:           //#ifndef	SPCSIGN
+198:           //#define	SPCSIGN	0x01
+199:           //#endif
+200:           #ifndef	NEGSIGN
+201:           #define	NEGSIGN	0x03
+202:           #endif
+203:           //#ifndef	WIDTH
+204:           //#define	WIDTH	1
+205:           //#endif
+206:           #endif
+207:           
+208:           #ifdef	SPCSIGN
+209:           #define	putsign()	pputc(flag & SPCSIGN ? '-' : '+')
+210:           #else
+211:           #define	putsign()	pputc('-')
+212:           #endif	// SPCSIGN
+213:           
+214:           // were there ANY % formats defined?
+215:           #if	defined(FLOATFORMAT) || defined(TEN) || defined(EIGHT) || defined(SIXTEEN) || \
+216:           	defined(CHAR) || defined(POINTER) || defined(STRING) || defined(UNSIGN) || defined(PERCPERC)
+217:           #define	ANYFORMAT
+218:           #else
+219:           #undef	ANYFORMAT
+220:           #endif
+221:           
+222:           #ifdef	CHAR
+223:           #ifndef	PERCPERC
+224:           #define	PERCPERC
+225:           #endif
+226:           #endif
+227:           
+228:           #if	!defined(PRINTF) && !defined(VPRINTF) && !defined(SPRINTF) && !defined(VSPRINTF)
+229:           #error	Must define at least one of PRINTF SPRINTF or VSPRINTF
+230:           #endif
+231:           
+232:           #if	i8086 && SMALL_DATA
+233:           #define	CONST	far
+234:           #else
+235:           #define	CONST	const
+236:           #endif
+237:           
+238:            /* we don't need plus signs, use minus signs only if we have floats or signed ints */
+239:           
+240:           #if	!defined(NEGSIGN) && defined(TEN)
+241:           #define	NEGSIGN	0x03
+242:           #endif
+243:           
+244:           #ifndef	RETVALUE
+245:           #define	INCR_CNT	/*nix */
+246:           #else
+247:           #define	INCR_CNT	,(++ccnt)
+248:           #endif
+249:           
+250:           #if	defined(EFMT) || defined(GFMT) || defined(FFMT) || defined(ALTERN) || defined(DEFPREC) || defined(POINTER)
+251:           #define	FLAG_SIZE	unsigned short
+252:           #else
+253:           #define	FLAG_SIZE	unsigned char
+254:           #endif
+255:           
+256:           
+257:           #if	(sizeof(long) == sizeof(int) || defined(__FLOAT)) && !defined(__LONG)
+258:           #define	__LONG	1
+259:           #endif
+260:           
+261:           #if	sizeof(double) == sizeof(long) && DBL_MAX_EXP == 128
+262:           #undef	frexp
+263:           #define	frexp(val, ptr) (void)(*(ptr) = (unsigned char)((*(unsigned long *)&val >> 23) & 255) - 126)
+264:           #elif	defined(_PSOC_)
+265:           #undef	frexp
+266:           #define	frexp(val, ptr) (void)(*(ptr) = ((unsigned char)(*(unsigned short long *)&val >> 15)) - 126)
+267:           #elif	sizeof(double) == 3 && DBL_MAX_EXP == 128
+268:           #undef	frexp
+269:           #define	frexp(val, ptr) (void)(*(ptr) = ((*(unsigned long *)&val >> 15) & 255) - 126)
+270:           #endif
+271:           
+272:           #if	defined(__FLOAT) && sizeof(double) == 8
+273:           #define	DOUBLE	1
+274:           
+275:           extern double	_dto64i(double);
+276:           extern double	_64itod(double);
+277:           extern double	_div64(double, double);
+278:           extern double	_divto64i(double, double);
+279:           extern unsigned	_div64ir(double, double);
+280:           extern unsigned	_mod64i10(double);
+281:           
+282:           #else
+283:           #define	DOUBLE	0
+284:           #endif
+285:           
+286:           #ifdef	__LONG
+287:           #define	value	long
+288:           #define	NDIG	12		/* max number of digits to be printed */
+289:           #else
+290:           #define	value	int
+291:           #define	NDIG	6		/* max number of digits to be printed */
+292:           #endif
+293:           
+294:           #if	DOUBLE
+295:           union {
+296:           	unsigned long	ul[40];
+297:           	double		db[20];
+298:           }	_fdp =
+299:           {
+300:           #if	!defined(BIG_ENDIAN) && !defined(LITTLE_ENDIAN)
+301:           #error Neither BIG_ENDIAN or LITTLE_ENDIAN has been set
+302:           #endif
+303:           #if	BIG_ENDIAN
+304:           	0x00000000,0x00000001,
+305:           	0x00000000,0x0000000A,
+306:           	0x00000000,0x00000064,
+307:           	0x00000000,0x000003E8,
+308:           	0x00000000,0x00002710,
+309:           	0x00000000,0x000186A0,
+310:           	0x00000000,0x000F4240,
+311:           	0x00000000,0x00989680,
+312:           	0x00000000,0x05F5E100,
+313:           	0x00000000,0x3B9ACA00,
+314:           	0x00000002,0x540BE400,
+315:           	0x00000017,0x4876E800,
+316:           	0x000000E8,0xD4A51000,
+317:           	0x00000918,0x4E72A000,
+318:           	0x00005AF3,0x107A4000,
+319:           	0x00038D7E,0xA4C68000,
+320:           	0x002386F2,0x6FC10000,
+321:           	0x01634578,0x5D8A0000,
+322:           	0x0DE0B6B3,0xA7640000,
+323:           	0x8AC72304,0x89E80000,
+324:           #else
+325:           	0x00000001,0x00000000,
+326:           	0x0000000A,0x00000000,
+327:           	0x00000064,0x00000000,
+328:           	0x000003E8,0x00000000,
+329:           	0x00002710,0x00000000,
+330:           	0x000186A0,0x00000000,
+331:           	0x000F4240,0x00000000,
+332:           	0x00989680,0x00000000,
+333:           	0x05F5E100,0x00000000,
+334:           	0x3B9ACA00,0x00000000,
+335:           	0x540BE400,0x00000002,
+336:           	0x4876E800,0x00000017,
+337:           	0xD4A51000,0x000000E8,
+338:           	0x4E72A000,0x00000918,
+339:           	0x107A4000,0x00005AF3,
+340:           	0xA4C68000,0x00038D7E,
+341:           	0x6FC10000,0x002386F2,
+342:           	0x5D8A0000,0x01634578,
+343:           	0xA7640000,0x0DE0B6B3,
+344:           	0x89E80000,0x8AC72304,
+345:           #endif
+346:           };
+347:           
+348:           #define	fdpowers	_fdp.db
+349:           
+350:           #else
+351:           #define	fdpowers	dpowers
+352:           #endif
+353:           #if defined(TEN) || defined(__FLOAT) || defined (UNSIGN)
+354:           const static unsigned value	dpowers[] =	{1, 10, 100, 1000, 10000,
+355:           #ifdef	__LONG
+356:           						 100000, 1000000, 10000000, 100000000,
+357:           						 1000000000
+358:           #endif
+359:           							 };
+360:           #endif
+361:           #ifdef	SIXTEEN
+362:           const static unsigned value	hexpowers[] =	{1, 0x10, 0x100, 0x1000,
+363:           #if	__LONG
+364:           						 0x10000, 0x100000, 0x1000000, 0x10000000
+365:           #endif
+366:           							};
+367:           #endif
+368:           #ifdef	EIGHT
+369:           const static unsigned value	octpowers[] =	{1, 010, 0100, 01000, 010000, 0100000,
+370:           #ifdef	__LONG
+371:           						01000000,
+372:           						 010000000, 0100000000, 01000000000, 010000000000,
+373:           						 0100000000000
+374:           #endif
+375:           							};
+376:           #endif
+377:           
+378:           #ifdef	__FLOAT
+379:           
+380:           #define	NDDIG	(sizeof fdpowers/sizeof fdpowers[0])
+381:           
+382:           #if	DBL_MAX_10_EXP > 120
+383:           #define	expon	int
+384:           #else
+385:           #define	expon	signed char
+386:           #endif
+387:           
+388:           extern const double	_powers_[], _npowers_[];
+389:           #ifdef	z80
+390:           #define	_div_to_l_(a, b)	((unsigned long)((a)/(b)))
+391:           #else
+392:           extern unsigned long	_div_to_l_(double, double);
+393:           #ifdef	_OMNI_CODE_
+394:           extern unsigned long	_tdiv_to_l_(float, float);
+395:           #ifdef	_HTKC_
+396:           #pragma callname _div_to_l_ double
+397:           #pragma callname _tdiv_to_l_ float
+398:           #endif
+399:           #define	div_to_l_(a,b)	((sizeof(double)== 3) ? _tdiv_to_l_(a,b) : _div_to_l_(a,b))
+400:           #else
+401:           #define	div_to_l_	_div_to_l_
+402:           #endif
+403:           #endif
+404:           
+405:           /* this routine returns a value to round to the number of decimal
+406:           	places specified */
+407:           #if __FLOAT
+408:           static double
+409:           fround(unsigned char prec)
+410:           {
+411:           	/* prec is guaranteed to be less than NDIG */
+412:           
+413:           	if(prec>=110)
+414:           		return 0.5 * _npowers_[prec/100+18] * _npowers_[(prec%100)/10+9] * _npowers_[prec%10];
+415:           	else if(prec > 10)
+416:           		return 0.5 * _npowers_[prec/10+9] * _npowers_[prec%10];
+417:           	return 0.5 * _npowers_[prec];
+418:           }
+419:           #endif
+420:           
+421:           /* this routine returns a scaling factor equal to 1 to the decimal
+422:              power supplied */
+423:           
+424:           static double
+425:           scale(expon scl)
+426:           {
+427:           
+428:           	if(scl < 0) {
+429:           		scl = -scl;
+430:           		if(scl>=110)
+431:           			return _npowers_[scl/100+18] * _npowers_[(scl%100)/10+9] * _npowers_[scl%10];
+432:           		else if(scl > 10)
+433:           			return _npowers_[scl/10+9] * _npowers_[scl%10];
+434:           		return _npowers_[scl];
+435:           	}
+436:           	if(scl>=110)
+437:           		return _powers_[scl/100+18] * _powers_[(scl%100)/10+9] * _powers_[scl%10];
+438:           	else if(scl > 10)
+439:           		return _powers_[scl/10+9] * _powers_[scl%10];
+440:           	return _powers_[scl];
+441:           }
+442:           
+443:           
+444:           #endif	/* __FLOAT */
+445:           
+446:           
+447:           
+448:           #ifdef	_HOSTED
+449:           #define	pputc(c)	(putc(c, fp) != EOF && ++ccnt)
+450:           int
+451:           vfprintf(FILE * fp, register const  char * f, register va_list ap)
+452:           {
+453:           	char		cbuf[2];
+454:           #else	/* _HOSTED */
+455:           int
+456:           #if	defined(VPRINTF) || (defined(PRINTF) && (defined(SPRINTF) || defined(VSPRINTF)))
+457:           #define	pputc(c)	if(pb->func) (pb->func(c))INCR_CNT; else ((*pb->ptr++ = c)INCR_CNT)
+458:           _doprnt(struct __prbuf * pb, register const  char * f, register va_list ap)
+459:           {
+460:           #endif
+461:           
+462:           #if	defined(PRINTF) && !(defined(SPRINTF) || defined(VSPRINTF))
+463:           #define	pputc(c)	(putch(c) INCR_CNT)
+464:           printf(const char * f, ...)
+465:           {
+466:           	va_list	ap;
+467:           #define	NEED_START
+468:           #endif
+469:           
+470:           #if	!defined(PRINTF) && defined(VSPRINTF)
+471:           
+472:           #ifdef	SPRINTF
+473:           sprintf(char * sp, const char * f, ...)
+474:           {
+475:           	va_list	ap;
+476:           
+477:           	va_start(ap, f);
+478:           	vsprintf(sp, f, ap);
+479:           	va_end(ap);
+480:           }
+481:           int
+482:           #endif	// SPRINTF
+483:           
+484:           #define	pputc(c)	((*sp++ = (c))INCR_CNT)
+485:           vsprintf(char * sp, register const  char * f, register va_list ap)
+486:           {
+487:           #define NEED_START
+488:           #endif	// VSPRINTF
+489:           
+490:           #if	!defined(PRINTF) && defined(SPRINTF) && !defined(VSPRINTF)
+491:           #define	pputc(c)	((*sp++ = (c))INCR_CNT)
+492:           sprintf(char * sp, const  char * f, ...)
+493:           {
+494:           	va_list	ap;
+495:           #define	NEED_START
+496:           #endif
+497:           #endif	// HOSTED
+498:           
+499:           	signed char		c;
+500:           #if	defined(WIDTH) || defined(__FLOAT)
+501:           	int		width;
+502:           #endif
+503:           #ifdef	__LONG
+504:           	int		prec;
+505:           #else
+506:           	signed char	prec;
+507:           #endif
+508:           	FLAG_SIZE	flag;
+509:           #ifdef	RETVALUE
+510:           	int		ccnt = 0;
+511:           #else
+512:           #define	ccnt	0
+513:           #endif
+514:           #ifdef	__FLOAT
+515:           	char	d;
+516:           	double	fval; 
+517:           	int		exp;
+518:           #if DOUBLE
+519:           	double		ival;
+520:           #endif
+521:           #endif
+522:           #if ! DOUBLE || __FLOAT
+523:           	union {
+524:           		unsigned long vd;
+525:           		double integ;
+526:           	} tmpval;
+527:           #endif
+528:           	unsigned value	val;
+529:           	unsigned	len;
+530:           	CONST char *	cp;
+531:           	
+532:           #ifdef	NEED_START
+533:           	va_start(ap, f);
+0632  0E8B     MOVLW 0x8B
+0634  0100     MOVLB 0x0
+0636  6F92     MOVWF ap, BANKED
+0638  0E00     MOVLW 0x0
+063A  0100     MOVLB 0x0
+063C  6F93     MOVWF 0x93, BANKED
+534:           #endif
+535:           
+536:           	while(c = *f++) {
+063E  D139     BRA 0x8B2
+08B2  C089     MOVFF f, TBLPTR
+08B4  FFF6     NOP
+08B6  C08A     MOVFF flash_store_buff, TBLPTRH
+08B8  FFF7     NOP
+08BA  0100     MOVLB 0x0
+08BC  4B89     INFSNZ f, F, BANKED
+08BE  2B8A     INCF flash_store_buff, F, BANKED
+08C0  0008     TBLRD*
+08C2  CFF5     MOVFF TABLAT, c
+08C4  F09A     NOP
+08C6  0100     MOVLB 0x0
+08C8  519A     MOVF c, W, BANKED
+08CA  A4D8     BTFSS STATUS, 2, ACCESS
+08CC  D6B9     BRA 0x640
+537:           #ifdef	ANYFORMAT
+538:           		if(c != '%')
+0640  0E25     MOVLW 0x25
+0642  0100     MOVLB 0x0
+0644  199A     XORWF c, W, BANKED
+0646  B4D8     BTFSC STATUS, 2, ACCESS
+0648  D00A     BRA 0x65E
+539:           #endif	//ANYFORMAT
+540:           		{
+541:           			pputc(c);
+064A  C087     MOVFF sp, FSR2
+064C  FFD9     NOP
+064E  C088     MOVFF flash_data_buff, FSR2H
+0650  FFDA     NOP
+0652  C09A     MOVFF c, INDF2
+0654  FFDF     NOP
+0656  0100     MOVLB 0x0
+0658  4B87     INFSNZ sp, F, BANKED
+065A  2B88     INCF flash_data_buff, F, BANKED
+542:           			continue;
+065C  D12A     BRA 0x8B2
+543:           		}
+544:           #ifdef	ANYFORMAT
+545:           #ifdef	WIDTH
+546:           		width = 0;
+065E  0E00     MOVLW 0x0
+0660  0100     MOVLB 0x0
+0662  6F99     MOVWF 0x99, BANKED
+0664  0E00     MOVLW 0x0
+0666  6F98     MOVWF width, BANKED
+547:           #endif
+548:           		flag = 0;
+0668  0E00     MOVLW 0x0
+066A  0100     MOVLB 0x0
+066C  6F94     MOVWF flag, BANKED
+549:           #if	defined(LEFT) || defined(SPCSIGN) || defined(MANSIGN) || defined(ALTERN) || defined(FILL)
+550:           		for(;;) {
+551:           			switch(*f) {
+066E  D005     BRA 0x67A
+067A  C089     MOVFF f, TBLPTR
+067C  FFF6     NOP
+067E  C08A     MOVFF flash_store_buff, TBLPTRH
+0680  FFF7     NOP
+0682  0008     TBLRD*
+0684  50F5     MOVF TABLAT, W, ACCESS
+0686  0A30     XORLW 0x30
+0688  B4D8     BTFSC STATUS, 2, ACCESS
+068A  D7F2     BRA 0x670
+552:           #ifdef	LEFT
+553:           			case '-':
+554:           				flag |= LEFT;
+555:           				f++;
+556:           				continue;
+557:           #endif
+558:           
+559:           #ifdef	SPCSIGN
+560:           			case ' ':
+561:           				flag |= SPCSIGN;
+562:           				f++;
+563:           				continue;
+564:           #endif
+565:           
+566:           #ifdef	MANSIGN
+567:           			case '+':
+568:           				flag |= MANSIGN;
+569:           				f++;
+570:           				continue;
+571:           #endif
+572:           #ifdef	ALTERN
+573:           			case '#':
+574:           				flag |= ALTERN;
+575:           				f++;
+576:           				continue;
+577:           #endif
+578:           #ifdef	FILL
+579:           			case '0':
+580:           				flag |= FILL;
+0670  0100     MOVLB 0x0
+0672  8594     BSF flag, 2, BANKED
+581:           				f++;
+0674  0100     MOVLB 0x0
+0676  4B89     INFSNZ f, F, BANKED
+0678  2B8A     INCF flash_store_buff, F, BANKED
+582:           				continue;
+583:           #endif
+584:           			}
+585:           			break;
+586:           		}
+587:           #endif
+588:           #if	defined(MANSIGN) && defined(SPCSIGN)
+589:           		if(flag & MANSIGN)
+590:           			flag &= ~SPCSIGN;
+591:           #endif
+592:           #if	defined(LEFT) && defined(FILL)
+593:           		if(flag & LEFT)
+594:           			flag &= ~FILL;
+595:           #endif
+596:           #ifdef	WIDTH
+597:           		if(isdigit((unsigned)*f)) {
+068C  C089     MOVFF f, TBLPTR
+068E  FFF6     NOP
+0690  C08A     MOVFF flash_store_buff, TBLPTRH
+0692  FFF7     NOP
+0694  0008     TBLRD*
+0696  50F5     MOVF TABLAT, W, ACCESS
+0698  ECF3     CALL 0xDE6, 0
+069A  F006     NOP
+069C  A0D8     BTFSS STATUS, 0, ACCESS
+069E  D040     BRA 0x720
+598:           			width = 0;
+06A0  0E00     MOVLW 0x0
+06A2  0100     MOVLB 0x0
+06A4  6F99     MOVWF 0x99, BANKED
+06A6  0E00     MOVLW 0x0
+06A8  6F98     MOVWF width, BANKED
+599:           			do {
+600:           				width *= 10;
+06AA  C098     MOVFF width, __pcstackBANK0
+06AC  F080     NOP
+06AE  C099     MOVFF 0x99, c
+06B0  F081     NOP
+06B2  0E00     MOVLW 0x0
+06B4  0100     MOVLB 0x0
+06B6  6F83     MOVWF len, BANKED
+06B8  0E0A     MOVLW 0xA
+06BA  6F82     MOVWF divisor, BANKED
+06BC  ECD8     CALL 0xDB0, 0
+06BE  F006     NOP
+06C0  C080     MOVFF __pcstackBANK0, width
+06C2  F098     NOP
+06C4  C081     MOVFF c, 0x99
+06C6  F099     NOP
+601:           			   	width += *f++ - '0';
+06C8  0ED0     MOVLW 0xD0
+06CA  0100     MOVLB 0x0
+06CC  6F8D     MOVWF 0x8D, BANKED
+06CE  0EFF     MOVLW 0xFF
+06D0  0100     MOVLB 0x0
+06D2  6F8E     MOVWF 0x8E, BANKED
+06D4  C089     MOVFF f, TBLPTR
+06D6  FFF6     NOP
+06D8  C08A     MOVFF flash_store_buff, TBLPTRH
+06DA  FFF7     NOP
+06DC  0008     TBLRD*
+06DE  50F5     MOVF TABLAT, W, ACCESS
+06E0  0100     MOVLB 0x0
+06E2  6F8F     MOVWF 0x8F, BANKED
+06E4  6B90     CLRF 0x90, BANKED
+06E6  0100     MOVLB 0x0
+06E8  518D     MOVF 0x8D, W, BANKED
+06EA  0100     MOVLB 0x0
+06EC  278F     ADDWF 0x8F, F, BANKED
+06EE  0100     MOVLB 0x0
+06F0  518E     MOVF 0x8E, W, BANKED
+06F2  0100     MOVLB 0x0
+06F4  2390     ADDWFC 0x90, F, BANKED
+06F6  0100     MOVLB 0x0
+06F8  518F     MOVF 0x8F, W, BANKED
+06FA  0100     MOVLB 0x0
+06FC  2798     ADDWF width, F, BANKED
+06FE  0100     MOVLB 0x0
+0700  5190     MOVF 0x90, W, BANKED
+0702  0100     MOVLB 0x0
+0704  2399     ADDWFC 0x99, F, BANKED
+0706  0100     MOVLB 0x0
+0708  4B89     INFSNZ f, F, BANKED
+070A  2B8A     INCF flash_store_buff, F, BANKED
+602:           			} while(isdigit((unsigned)*f));
+070C  C089     MOVFF f, TBLPTR
+070E  FFF6     NOP
+0710  C08A     MOVFF flash_store_buff, TBLPTRH
+0712  FFF7     NOP
+0714  0008     TBLRD*
+0716  50F5     MOVF TABLAT, W, ACCESS
+0718  ECF3     CALL 0xDE6, 0
+071A  F006     NOP
+071C  B0D8     BTFSC STATUS, 0, ACCESS
+071E  D7C5     BRA 0x6AA
+603:           #ifdef	STAR
+604:           		} else if(*f == '*') {
+605:           			width = va_arg(ap, int);
+606:           			f++;
+607:           #endif
+608:           		}
+609:           #endif
+610:           #ifdef	PRECISION
+611:           		if(*f == '.') {
+612:           			flag |= PRECISION;
+613:           			f++;
+614:           #ifdef	STAR
+615:           			if(*f == '*') {
+616:           				prec = va_arg(ap, int);
+617:           				f++;
+618:           			} else
+619:           #endif
+620:           			{
+621:           				prec = 0;
+622:           				while(isdigit((unsigned)*f))
+623:           					prec = prec*10 + *f++ - '0';
+624:           			}
+625:           		} else {
+626:           			prec = 0;
+627:           #ifdef	DEFPREC
+628:           			flag |= DEFPREC;
+629:           #endif	// DEFPREC
+630:           		}
+631:           #endif	// PRECISION
+632:           #if	defined(__LONG) && defined(LONG)
+633:           loop:
+634:           #endif
+635:           		switch(c = *f++) {
+0720  C089     MOVFF f, TBLPTR
+0722  FFF6     NOP
+0724  C08A     MOVFF flash_store_buff, TBLPTRH
+0726  FFF7     NOP
+0728  0100     MOVLB 0x0
+072A  4B89     INFSNZ f, F, BANKED
+072C  2B8A     INCF flash_store_buff, F, BANKED
+072E  0008     TBLRD*
+0730  CFF5     MOVFF TABLAT, c
+0732  F09A     NOP
+0734  0100     MOVLB 0x0
+0736  519A     MOVF c, W, BANKED
+0738  0A00     XORLW 0x0
+073A  B4D8     BTFSC STATUS, 2, ACCESS
+073C  D0C8     BRA 0x8CE
+073E  0A58     XORLW 0x58
+0740  B4D8     BTFSC STATUS, 2, ACCESS
+0742  D003     BRA 0x74A
+0744  0A20     XORLW 0x20
+0746  A4D8     BTFSS STATUS, 2, ACCESS
+0748  D0B4     BRA 0x8B2
+636:           
+637:           		case 0:
+638:           			goto alldone;
+639:           
+640:           #ifdef	LONG
+641:           		case 'l':
+642:           #ifdef	__LONG
+643:           			flag |= LONG;
+644:           			goto loop;
+645:           #else
+646:           			cp = "(non-long printf)";
+647:           			goto strings;
+648:           #endif
+649:           #endif
+650:           
+651:           #ifdef	FLOATFORMAT
+652:           #ifndef	__FLOAT
+653:           		case 'E':
+654:           		case 'f':
+655:           		case 'e':
+656:           		case 'G':
+657:           		case 'g':
+658:           			cp = "(non-float printf)";
+659:           			goto strings;
+660:           #else
+661:           #ifdef	FFMT
+662:           		case 'f':
+663:           			flag |= FFMT;
+664:           			break;
+665:           #endif
+666:           
+667:           #ifdef	EFMT
+668:           #ifdef	UPCASE
+669:           		case 'E':
+670:           			flag |= UPCASE;
+671:           #endif
+672:           		case 'e':
+673:           			flag |= EFMT;
+674:           			break;
+675:           #endif
+676:           
+677:           #ifdef	GFMT
+678:           #ifdef	UPCASE
+679:           		case 'G':
+680:           			flag |= UPCASE;
+681:           #endif
+682:           		case 'g':
+683:           			flag |= GFMT;
+684:           			break;
+685:           #endif	// GFMT
+686:           #endif
+687:           #endif	// FLOATFORMAT
+688:           #ifdef	EIGHT
+689:           		case 'o':
+690:           #ifdef	MULTRAD
+691:           			flag |= EIGHT;
+692:           #endif
+693:           			break;
+694:           #endif
+695:           
+696:           #ifdef	TEN
+697:           		case 'd':
+698:           		case 'i':
+699:           			break;
+700:           #endif
+701:           
+702:           #ifdef	POINTER
+703:           		case 'p':
+704:           #if	i8086 && LARGE_DATA
+705:           			flag |= LONG;
+706:           #elif	_PIC18
+707:           			flag |= POINTER;
+708:           #endif
+709:           #endif	// POINTER
+710:           #ifdef	SIXTEEN
+711:           #ifdef	HEXUPCASE
+712:           		case 'X':
+713:           #ifdef	UPCASE
+714:           			flag |= UPCASE;
+715:           #endif
+716:           #endif
+717:           #if	defined(HEXLOWCASE) || !defined(UPCASE)
+718:           		case 'x':
+719:           #endif
+720:           #ifdef	MULTRAD
+721:           			flag |= SIXTEEN;
+722:           #endif
+723:           			break;
+724:           #endif	// SIXTEEN
+725:           
+726:           #if	defined(STRING) || defined(PERCPERC)
+727:           #ifdef	STRING
+728:           		case 's':
+729:           #if	i8086 && SMALL_DATA
+730:           			if(flag & LONG)
+731:           				cp = va_arg(ap, far char *);
+732:           			else
+733:           #endif
+734:           				cp = va_arg(ap, const char *);
+735:           #endif	// STRING
+736:           #if	!defined(__FLOAT) && !defined(CUSTOM_PRINTF)
+737:           strings:
+738:           #endif
+739:           #ifdef	STRING
+740:           			if(!cp)
+741:           				cp = "(null)";
+742:           #endif
+743:           #if	defined(WIDTH) || defined(PRECISION)
+744:           #if	defined(STRING)
+745:           			len = 0;
+746:           			while(cp[len])
+747:           				len++;
+748:           #endif
+749:           #ifdef	PERCPERC
+750:           dostring:
+751:           #endif
+752:           #ifdef	PRECISION
+753:           			if(prec && prec < len)
+754:           				len = prec;
+755:           #endif	// PRECISION
+756:           #ifdef	WIDTH
+757:           			if(width > len)
+758:           				width -= len;
+759:           			else
+760:           				width = 0;
+761:           #ifdef	LEFT
+762:           			if(!(flag & LEFT))
+763:           #endif	// LEFT
+764:           				while(width--)
+765:           					pputc(' ');
+766:           #endif	// WIDTH
+767:           			while(len--)
+768:           				pputc(*cp++);
+769:           #ifdef	LEFT
+770:           			if(flag & LEFT)
+771:           				while(width--)
+772:           					pputc(' ');
+773:           #endif	// LEFT
+774:           			continue;
+775:           #else	// WIDTH || PRECISION
+776:           #if	defined(STRING)
+777:           			while(*cp)
+778:           				pputc(*cp++);
+779:           			continue;
+780:           #endif
+781:           #endif	// WIDTH || PRECISION
+782:           #endif	// defined(STRING) || defined(PERCPERC)
+783:           #ifdef	CHAR
+784:           		case 'c':
+785:           #if	_HOSTED
+786:           			val = va_arg(ap, int);
+787:           			c = val >> 8;
+788:           			if(flag & LONG && c && (unsigned char)c != 0xFF) {
+789:           				cbuf[0] = c;
+790:           				cbuf[1] = val;
+791:           				len = 2;
+792:           			} else {
+793:           				cbuf[0] = val;
+794:           				len = 1;
+795:           			}
+796:           			cp = cbuf;
+797:           			goto dostring;
+798:           #else
+799:           			c = va_arg(ap, int);
+800:           #endif	// _HOSTED
+801:           #endif	// CHAR
+802:           		default:
+803:           #ifdef	PERCPERC
+804:           #if	defined(WIDTH) || defined(PRECISION)
+805:           			cp = (char *)&c;
+806:           			len = 1;
+807:           			goto dostring;
+808:           #else
+809:           			pputc(c);
+810:           			continue;
+811:           #endif
+812:           #else	// PERCPERC
+813:           			continue;
+814:           #endif
+815:           
+816:           #ifdef	UNSIGN
+817:           		case 'u':
+818:           			flag |= UNSIGN;
+819:           			break;
+820:           #endif
+821:           
+822:           		}
+823:           #endif	// ANYFORMAT
+824:           #ifdef	__FLOAT
+825:           		if(flag & (FLOATFORMAT)) {
+826:           #ifdef	DEFPREC
+827:           			if(flag & DEFPREC)
+828:           #endif
+829:           				prec = 6;
+830:           			fval = va_arg(ap, double);	// source the floating point value
+831:           			if(fval < 0.0) {
+832:           				fval = -fval;		// get the absolute value
+833:           				flag |= NEGSIGN;
+834:           			}
+835:           			exp = 0;		/* If the number is zero, the exponent is zero. */
+836:           			if( fval!=0) {		/* If the number is non-zero, find the exponent. */
+837:           				frexp(fval, &exp);		/* get binary exponent */
+838:           				exp--;				/* adjust 0.5 -> 1.0 */
+839:           				exp *= 3;
+840:           				exp /= 10;			/* estimate decimal exponent */
+841:           				if(exp < 0)
+842:           					exp--;
+843:           				// the following line can cause "recursive call" errors because scale calls
+844:           				// ftmul, and is used when evaluating an argument to ftmul
+845:           				//integ = fval * scale(-exp);
+846:           				tmpval.integ = scale(-exp);		// replaced with this
+847:           				tmpval.integ *= fval;
+848:           				if(tmpval.integ < 1.0)
+849:           					exp--;
+850:           				else if(tmpval.integ >= 10.0)
+851:           					exp++;
+852:           			}
+853:           #if	defined(EFMT) || defined(GFMT)
+854:           			if(exp <= 0)	// value is 0.??? (neg expnt) whole characters = 1 (allow zero)
+855:           				c = 1;
+856:           			else
+857:           				c = exp;
+858:           			if(
+859:           #ifdef	EFMT
+860:           					flag & EFMT
+861:           #ifdef	GFMT
+862:           					||
+863:           #endif
+864:           #endif
+865:           #ifdef	GFMT
+866:           					flag & GFMT && (exp < -4 || exp >= (int)prec)
+867:           #endif
+868:           				) {	/* use e format */
+869:           #ifdef	GFMT
+870:           				if(prec && flag & GFMT)
+871:           					prec--;		/* g format precision includes integer digit */
+872:           #endif
+873:           				if((unsigned)prec > NDDIG - 2)
+874:           					c = NDDIG - 2;
+875:           				else
+876:           					c = prec;
+877:           				if( fval!=0) {	/* Normalise only if the number is non-zero. */
+878:           					fval /= scale(exp-c);
+879:           #if	DOUBLE
+880:           					ival = _dto64i(fval);
+881:           					if(fval - _64itod(ival) >= 0.5) {
+882:           						fval += 0.5;
+883:           						ival = _dto64i(fval);
+884:           					}
+885:           					if(ival >= fdpowers[c+1]) {
+886:           						fval *= 1e-1;
+887:           						exp++;
+888:           					} else if(ival < fdpowers[c]) {
+889:           						fval *= 10.0;
+890:           						exp--;
+891:           					}
+892:           #else	
+893:           					if(fval - (double)(unsigned long)fval >= 0.5)
+894:           						fval += 0.5;
+895:           					if((unsigned long)fval >= fdpowers[c+1]) {
+896:           						fval *= 1e-1;
+897:           						exp++;
+898:           					} else if((unsigned long)fval < fdpowers[c]) {
+899:           						fval *= 10.0;
+900:           						exp--;
+901:           					}
+902:           #endif
+903:           				}
+904:           #if defined(GFMT) && defined(ALTERN)
+905:           				if(flag & GFMT && !(flag & ALTERN)) {		/* g format, precision means something different */
+906:           					if(prec > (int)(NDDIG))
+907:           						prec = NDDIG;
+908:           #if	DOUBLE
+909:           					ival = _dto64i(fval);
+910:           					while(ival != 0.0 && _mod64i10(ival) == 0) {
+911:           						prec--;
+912:           						ival = _div64(ival, fdpowers[1]);
+913:           					}
+914:           #else
+915:           					val = (unsigned long)fval;
+916:           					while(val && val % 10 == 0) {
+917:           						prec--;
+918:           						val /= 10;
+919:           					}
+920:           #endif
+921:           					if(prec < c) {
+922:           						fval /= scale(c-prec);
+923:           						c = prec;
+924:           					}
+925:           
+926:           				}
+927:           #endif
+928:           #ifdef	WIDTH
+929:           				width -=  prec + 5;
+930:           #ifdef	ALTERN
+931:           				if(prec || flag & ALTERN)
+932:           					width--;
+933:           #endif
+934:           				if(flag & NEGSIGN)
+935:           					width--;
+936:           #if	DBL_MAX_10_EXP >= 100
+937:           #if	DBL_MAX_10_EXP >= 1000
+938:           				if(exp >= 1000 || exp <= -1000)	/* 4 digit exponent */
+939:           					width--;
+940:           #endif
+941:           				if(exp >= 100 || exp <= -100)	/* 3 digit exponent */
+942:           					width--;
+943:           #endif
+944:           #endif	// WIDTH
+945:           #ifdef	FILL
+946:           				if(flag & FILL) {
+947:           #if defined(MANSIGN) && defined(SPCSIGN)
+948:           					if(flag & MANSIGN)
+949:           						pputc(flag & SPCSIGN ? '-' : '+');
+950:           					else if(flag & SPCSIGN)
+951:           						pputc(' ');
+952:           #endif
+953:           					while(width > 0) {
+954:           						pputc('0');
+955:           						width--;
+956:           					}
+957:           				} else
+958:           #endif	// FILL
+959:           				{
+960:           #ifdef	WIDTH
+961:           #ifdef	LEFT
+962:           					if(!(flag & LEFT))
+963:           #endif
+964:           						while(width > 0) {
+965:           							pputc(' ');
+966:           							width--;
+967:           						}
+968:           #endif	// WIDTH
+969:           #ifdef	MANSIGN
+970:           					if(flag & MANSIGN)
+971:           						putsign();
+972:           #else
+973:           					if(flag & NEGSIGN)
+974:           						pputc('-');
+975:           #endif	// MANSIGN
+976:           #ifdef	SPCSIGN
+977:           					else if(flag & SPCSIGN)
+978:           						pputc(' ');
+979:           #endif	// SPCSIGN
+980:           				}
+981:           #if	DOUBLE
+982:           				ival = _dto64i(fval);
+983:           				pputc(_div64ir(ival, fdpowers[c]) + '0');
+984:           #else
+985:           				val = (unsigned long)fval;
+986:           				pputc(val/dpowers[c] + '0');
+987:           				val %= dpowers[c];
+988:           #endif
+989:           #ifdef	ALTERN
+990:           				if(prec || flag & ALTERN)
+991:           #else
+992:           				if(prec)
+993:           #endif
+994:           				{
+995:           					pputc('.');
+996:           					prec -= c;
+997:           					while(c--) {
+998:           #if	DOUBLE
+999:           						pputc('0' + _mod64i10(_div64(ival, fdpowers[c])));
+1000:          #else
+1001:          #ifdef	GFMT
+1002:          						if(flag & GFMT && val == 0) {
+1003:          							prec = c = 0;
+1004:          							break;
+1005:          						}
+1006:          #endif
+1007:          						pputc('0' + (val/dpowers[c]));
+1008:          						val %= dpowers[c];
+1009:          #endif
+1010:          					}
+1011:          					while(prec) {
+1012:          						pputc('0');
+1013:          						prec--;
+1014:          					}
+1015:          				}
+1016:          #ifdef	UPCASE
+1017:          				if(flag & UPCASE)
+1018:          					pputc('E');
+1019:          				else
+1020:          #endif
+1021:          					pputc('e');
+1022:          				if(exp < 0) {
+1023:          					exp = -exp;
+1024:          					pputc('-');
+1025:          				} else
+1026:          					pputc('+');
+1027:          #if	DBL_MAX_10_EXP >= 100
+1028:          #if	DBL_MAX_10_EXP >= 1000
+1029:          				if(exp >= 1000) {
+1030:          					pputc(exp / 1000 + '0');
+1031:          					exp %= 1000;
+1032:          				}
+1033:          #endif
+1034:          				if(exp >= 100) {
+1035:          					pputc(exp / 100 + '0');
+1036:          					exp %= 100;
+1037:          				}
+1038:          #endif
+1039:          				pputc(exp / 10 + '0');
+1040:          				pputc(exp % 10 + '0');
+1041:          #ifdef	LEFT
+1042:          				if((flag & LEFT) && width > 0)
+1043:          					do
+1044:          						pputc(' ');
+1045:          					while(--width);
+1046:          #endif	// LEFT
+1047:          					continue;
+1048:          				}
+1049:          #endif	// EFMT || GFMT
+1050:          				/* here for f format */
+1051:          #if	DOUBLE
+1052:          #ifdef	GFMT
+1053:          				if(flag & GFMT) {
+1054:          					if(exp < 0)	// fractional part only
+1055:          						prec -= exp-1;
+1056:          					ival = _dto64i(fval);
+1057:          					for(c = 1 ; c != NDDIG ; c++)
+1058:          						if(ival < fdpowers[c])
+1059:          							break;
+1060:          					if(prec > NDDIG)
+1061:          						prec = NDDIG;
+1062:          					prec -= c;
+1063:          					ival = _dto64i((fval - _64itod(ival)) * scale(prec)+0.5);
+1064:          					// see how many zeros are at the end of the fractional part
+1065:          					while(prec && _mod64i10(ival) == 0) {
+1066:          						prec--;
+1067:          						ival = _div64(ival, fdpowers[1]);
+1068:          					}
+1069:          				}
+1070:          #endif	// GFMT
+1071:          				if(prec <= (int)NDDIG)
+1072:          					fval += fround(prec);
+1073:          				if(exp > (int)(NDDIG)-2) {
+1074:          					exp -= NDDIG-2;
+1075:          					ival = _divto64i(fval, scale(exp));
+1076:          					fval = 0.0;
+1077:          				} else {
+1078:          					ival = _dto64i(fval);
+1079:          					fval -= _64itod(ival);
+1080:          					exp = 0;
+1081:          				}
+1082:          				for(c = 1 ; c != NDDIG ; c++)
+1083:          					if(ival < fdpowers[c])
+1084:          						break;
+1085:          #else	// DOUBLE
+1086:          #ifdef	GFMT
+1087:          				if(flag & GFMT) {
+1088:          					if(exp < 0)	// fractional part only
+1089:          						prec -= (exp+1);
+1090:          					// count number of digits in the integral part (this is for %g)
+1091:          					val = (unsigned long)fval;
+1092:          					for(c = 0 ; c != NDDIG ; c++)
+1093:          						if(val < fdpowers[c])
+1094:          							break;
+1095:          					prec -= c;		// reduce precision by this
+1096:          					if(prec <= NDIG)
+1097:          						fval += fround(prec);
+1098:          					// get fractional part and count trailing zeros - reduce
+1099:          					// prec as required
+1100:          					{
+1101:          						double	temp;
+1102:          						temp = scale(prec);
+1103:          						temp *= fval - (double)val;
+1104:          						val = (unsigned long)temp;
+1105:          					}
+1106:          					while(prec && val % 10 == 0) {
+1107:          						val /= 10;
+1108:          						prec--;
+1109:          					}
+1110:          				} else
+1111:          #endif	//GFMT
+1112:          					if(prec <= NDIG)
+1113:          						fval += fround(prec);
+1114:          
+1115:          				/* ~4.2e9 is the largest float that will fit into a 32-bit long */
+1116:          				if((exp > 9)||(fval != 0 && (unsigned long)fval == 0 && exp > 1)) {
+1117:          					// fval is > 4.2e9
+1118:          					// new exp must be such that div_to_l() is < 4.2e9
+1119:          					// OLD CODE:	if(fval / scale(exp) < 4.294967296){
+1120:          					if(tmpval.integ < 4.294967296){
+1121:          						exp -= NDDIG-1;
+1122:          					}else{
+1123:          						exp -= NDDIG-2;
+1124:          					}
+1125:          					tmpval.integ = scale(exp);
+1126:          					val = div_to_l_(fval, tmpval.integ);
+1127:           					//val = _div_to_l_(integ, fval);
+1128:          					//val = (long)(integ * fval);	// fit as much signifigant data into the long as it can hold
+1129:          					fval = 0.0;	// There will be no fractional component
+1130:          				} else {
+1131:          					val = (unsigned long)fval;
+1132:          					fval -= (double)val;
+1133:          					exp = 0;
+1134:          				}
+1135:          				// count digits in integral part
+1136:          				for(c = 1 ; c != NDDIG ; c++)
+1137:          					if(val < fdpowers[c])
+1138:          						break;
+1139:          #endif	// DOUBLE
+1140:          #ifdef	WIDTH
+1141:          				// at this point, c contains the number of whole-number digits to print
+1142:          				width -= prec + c + exp;
+1143:          				if(
+1144:          #ifdef	ALTERN
+1145:          						flag & ALTERN ||
+1146:          #endif
+1147:          						prec)
+1148:          					width--;		// allow for decimal point
+1149:          				if(flag & NEGSIGN)
+1150:          					width--;
+1151:          #endif	// WIDTH
+1152:          #ifdef	FILL
+1153:          				if(flag & FILL) {
+1154:          #ifdef	MANSIGN
+1155:          					if(flag & MANSIGN)
+1156:          #else
+1157:          					if(flag & NEGSIGN)
+1158:          #endif	// MANSIGN
+1159:          						putsign();
+1160:          #if defined(MANSIGN) && defined(SPCSIGN)
+1161:          					else
+1162:          #endif
+1163:          #ifdef	SPCSIGN
+1164:          					if(flag & SPCSIGN)
+1165:          						pputc(' ');
+1166:          #endif	// SPCSIGN
+1167:          #ifdef	WIDTH
+1168:          					while(width > 0) {
+1169:          						pputc('0');
+1170:          						width--;
+1171:          					}
+1172:          #endif	// WIDTH
+1173:          				} else
+1174:          #endif	// FILL
+1175:          				{
+1176:          #ifdef	LEFT
+1177:          					if(!(flag & LEFT))
+1178:          #endif
+1179:          #ifdef	WIDTH
+1180:          					while(width > 0) {
+1181:          						pputc(' ');
+1182:          						width--;
+1183:          					}
+1184:          #endif	// WIDTH
+1185:          #ifdef	MANSIGN
+1186:          				if(flag & MANSIGN)
+1187:          #else
+1188:          				if(flag & NEGSIGN)
+1189:          #endif	// MANSIGN
+1190:          					putsign();
+1191:          #ifdef	SPCSIGN
+1192:          				else if(flag & SPCSIGN)
+1193:          					pputc(' ');
+1194:          #endif	// SPCSIGN
+1195:          			}
+1196:          			while(c--) {
+1197:          #if	DOUBLE
+1198:          				pputc('0' + _mod64i10(_div64(ival, fdpowers[c])));
+1199:          #else
+1200:          				{
+1201:          					tmpval.vd = val/dpowers[c];
+1202:          					tmpval.vd %= 10;
+1203:          					pputc('0' + tmpval.vd);
+1204:          				}
+1205:          #endif	// DOUBLE
+1206:          			}
+1207:          			while(exp > 0) {
+1208:          				pputc('0');
+1209:          				exp--;
+1210:          			}
+1211:          			if(prec > (int)(NDDIG-2))
+1212:          				c = NDDIG-2;
+1213:          			else
+1214:          				c = prec;
+1215:          			prec -= c;
+1216:          #ifdef	ALTERN
+1217:          			if(c || flag & ALTERN)
+1218:          #else
+1219:          			if(c)
+1220:          #endif
+1221:          				pputc('.');
+1222:          #if	DOUBLE
+1223:          			ival = _dto64i(fval * scale(c));
+1224:          			while(c)
+1225:          				pputc('0' + _mod64i10(_div64(ival, fdpowers[--c])));
+1226:          #else	// DOUBLE
+1227:          			val = (long)(fval * scale(c));
+1228:          			while(c--) {
+1229:          				tmpval.vd = val/dpowers[c];
+1230:          				tmpval.vd %= 10;
+1231:          				pputc('0' + tmpval.vd);
+1232:          				val %= dpowers[c];
+1233:          			}
+1234:          #endif	// DOUBLE
+1235:          			while(prec) {
+1236:          				pputc('0');
+1237:          				prec--;
+1238:          			}
+1239:          #ifdef	LEFT
+1240:          			if((flag & LEFT) && width > 0)
+1241:          				do
+1242:          					pputc(' ');
+1243:          				while(--width);
+1244:          #endif
+1245:          			continue;
+1246:          		}
+1247:          #endif	/* __FLOAT */
+1248:          
+1249:          #if	defined(TEN)
+1250:          #ifdef	BASEM
+1251:          		if((flag & BASEM) == TEN)
+1252:          #endif	//BASEM
+1253:          		{
+1254:          #ifdef	LONG
+1255:          			if(flag & LONG)
+1256:          				val = va_arg(ap, long);
+1257:          			else
+1258:          #endif	// LONG
+1259:          				val = (value)va_arg(ap, int);
+1260:          #ifdef	NEGSIGN
+1261:          			if((value)val < 0) {
+1262:          				flag |= NEGSIGN;
+1263:          				val = -val;
+1264:          			}
+1265:          #endif
+1266:          		}
+1267:          #ifdef	BASEM
+1268:          		else
+1269:          #endif
+1270:          #endif	// TEN
+1271:          
+1272:          #if	defined(EIGHT) || defined(SIXTEEN) || defined(UNSIGN)
+1273:          		{
+1274:          #ifdef	__LONG
+1275:          #if	defined(_PIC18) && defined(POINTER)
+1276:          			if(flag & POINTER)
+1277:          				val = (unsigned long)va_arg(ap, far char *);
+1278:          			else
+1279:          #endif
+1280:          #ifdef	LONG
+1281:          				if(flag & LONG)
+1282:          				val = va_arg(ap, unsigned long);
+1283:          			else
+1284:          #endif	// LONG
+1285:          #endif	// __LONG
+1286:          				val = va_arg(ap, unsigned);
+074A  C092     MOVFF ap, FSR2
+074C  FFD9     NOP
+074E  C093     MOVFF 0x93, FSR2H
+0750  FFDA     NOP
+0752  CFDE     MOVFF POSTINC2, val
+0754  F095     NOP
+0756  CFDD     MOVFF POSTDEC2, 0x96
+0758  F096     NOP
+075A  0E02     MOVLW 0x2
+075C  0100     MOVLB 0x0
+075E  2792     ADDWF ap, F, BANKED
+0760  0E00     MOVLW 0x0
+0762  2393     ADDWFC 0x93, F, BANKED
+1287:          		}
+1288:          #endif	// EIGHT or SIXTEEN or UNSIGN
+1289:          #ifdef	PRECISION
+1290:          		if(prec == 0 && val == 0)
+1291:          			prec++;
+1292:          #endif
+1293:          #ifdef	MULTRAD
+1294:          		switch((unsigned char)(flag & BASEM)) {
+1295:          #endif
+1296:          #if	defined(TEN) || defined(UNSIGN)
+1297:          #ifdef	MULTRAD
+1298:          #ifdef	TEN
+1299:          		case TEN:
+1300:          #endif
+1301:          #ifdef	UNSIGN
+1302:          		case UNSIGN:
+1303:          #endif
+1304:          #endif	// MULTRAD
+1305:          			for(c = 1 ; c != sizeof dpowers/sizeof dpowers[0] ; c++)
+1306:          				if(val < dpowers[c])
+1307:          					break;
+1308:          #ifdef	MULTRAD
+1309:          			break;
+1310:          #endif
+1311:          #endif	// TEN || UNSIGN
+1312:          #ifdef	SIXTEEN
+1313:          #ifdef	MULTRAD
+1314:          		case SIXTEEN:
+1315:          #endif	// MULTRAD
+1316:          			for(c = 1 ; c != sizeof hexpowers/sizeof hexpowers[0] ; c++)
+0764  0E01     MOVLW 0x1
+0766  0100     MOVLB 0x0
+0768  6F9A     MOVWF c, BANKED
+076A  0E04     MOVLW 0x4
+076C  0100     MOVLB 0x0
+076E  199A     XORWF c, W, BANKED
+0770  B4D8     BTFSC STATUS, 2, ACCESS
+0772  D016     BRA 0x7A0
+079A  0100     MOVLB 0x0
+079C  2B9A     INCF c, F, BANKED
+079E  D7E5     BRA 0x76A
+1317:          				if(val < hexpowers[c])
+0774  0100     MOVLB 0x0
+0776  519A     MOVF c, W, BANKED
+0778  0D02     MULLW 0x2
+077A  0E01     MOVLW 0x1
+077C  24F3     ADDWF PROD, W, ACCESS
+077E  6EF6     MOVWF TBLPTR, ACCESS
+0780  0E06     MOVLW 0x6
+0782  20F4     ADDWFC PRODH, W, ACCESS
+0784  6EF7     MOVWF TBLPTRH, ACCESS
+0786  0009     TBLRD*+
+0788  50F5     MOVF TABLAT, W, ACCESS
+078A  0100     MOVLB 0x0
+078C  5D95     SUBWF val, W, BANKED
+078E  0009     TBLRD*+
+0790  50F5     MOVF TABLAT, W, ACCESS
+0792  0100     MOVLB 0x0
+0794  5996     SUBWFB 0x96, W, BANKED
+0796  A0D8     BTFSS STATUS, 0, ACCESS
+0798  D003     BRA 0x7A0
+1318:          					break;
+1319:          #ifdef	MULTRAD
+1320:          			break;
+1321:          #endif
+1322:          #endif
+1323:          
+1324:          #ifdef	EIGHT
+1325:          #ifdef	MULTRAD
+1326:          		case EIGHT:
+1327:          #endif	// MULTRAD
+1328:          			for(c = 1 ; c != sizeof octpowers/sizeof octpowers[0] ; c++)
+1329:          				if(val < octpowers[c])
+1330:          					break;
+1331:          #ifdef	MULTRAD
+1332:          			break;
+1333:          #endif
+1334:          #endif
+1335:          #ifdef	MULTRAD
+1336:          		}
+1337:          #endif
+1338:          #ifdef	PRECISION
+1339:          		if(c < prec)
+1340:          			c = prec;
+1341:          		else if(prec < c)
+1342:          			prec = c;
+1343:          #endif
+1344:          #if	defined(WIDTH) && defined(NEGSIGN)
+1345:          		if(width && flag & NEGSIGN)
+1346:          			width--;
+1347:          #ifdef	PRECISION
+1348:          		if(flag & PRECISION) {
+1349:          			if(width > prec)
+1350:          				width -= prec;
+1351:          			else
+1352:          				width = 0;
+1353:          		}
+1354:          #endif
+1355:          #ifdef	ALTERN
+1356:          #ifdef	EIGHT
+1357:          		if((flag & (
+1358:          #ifdef	FILL
+1359:          						FILL|
+1360:          #endif
+1361:          							BASEM|ALTERN)) == (EIGHT|ALTERN)) {
+1362:          			if(width)
+1363:          				width--;
+1364:          		} else
+1365:          #endif	// EIGHT
+1366:          #if	defined(SIXTEEN)
+1367:          #ifdef	BASEM
+1368:          		if((flag & (BASEM|ALTERN)) == (SIXTEEN|ALTERN)) {
+1369:          #else
+1370:          		if(flag & ALTERN) {
+1371:          #endif
+1372:          			if(width > 2)
+1373:          				width -= 2;
+1374:          			else
+1375:          				width = 0;
+1376:          		}
+1377:          #endif	// SIXTEEN
+1378:          #endif	// ALTERN
+1379:          #endif	// WIDTH
+1380:          #ifdef	WIDTH
+1381:          		if(width > c)
+07A0  0E80     MOVLW 0x80
+07A2  0100     MOVLB 0x0
+07A4  BF9A     BTFSC c, 7, BANKED
+07A6  0E7F     MOVLW 0x7F
+07A8  0100     MOVLB 0x0
+07AA  6F8D     MOVWF 0x8D, BANKED
+07AC  0100     MOVLB 0x0
+07AE  5198     MOVF width, W, BANKED
+07B0  0100     MOVLB 0x0
+07B2  5D9A     SUBWF c, W, BANKED
+07B4  0100     MOVLB 0x0
+07B6  5199     MOVF 0x99, W, BANKED
+07B8  0A80     XORLW 0x80
+07BA  0100     MOVLB 0x0
+07BC  598D     SUBWFB 0x8D, W, BANKED
+07BE  B0D8     BTFSC STATUS, 0, ACCESS
+07C0  D00B     BRA 0x7D8
+1382:          			width -= c;
+07C2  0100     MOVLB 0x0
+07C4  519A     MOVF c, W, BANKED
+07C6  0100     MOVLB 0x0
+07C8  5F98     SUBWF width, F, BANKED
+07CA  0E00     MOVLW 0x0
+07CC  0100     MOVLB 0x0
+07CE  BF9A     BTFSC c, 7, BANKED
+07D0  0EFF     MOVLW 0xFF
+07D2  0100     MOVLB 0x0
+07D4  5B99     SUBWFB 0x99, F, BANKED
+07D6  D005     BRA 0x7E2
+1383:          		else
+1384:          			width = 0;
+07D8  0E00     MOVLW 0x0
+07DA  0100     MOVLB 0x0
+07DC  6F99     MOVWF 0x99, BANKED
+07DE  0E00     MOVLW 0x0
+07E0  6F98     MOVWF width, BANKED
+1385:          #endif
+1386:          #ifdef	FILL
+1387:          		if(flag & FILL) {
+07E2  0100     MOVLB 0x0
+07E4  A594     BTFSS flag, 2, BANKED
+07E6  D014     BRA 0x810
+1388:          #ifdef	MANSIGN
+1389:          			if(flag & MANSIGN)
+1390:          				putsign();
+1391:          #elif defined(NEGSIGN)
+1392:          			if(flag & NEGSIGN)
+1393:          				pputc('-');
+1394:          #endif
+1395:          #if defined(MANSIGN) || defined(NEGSIGN) && defined(SPCSIGN)
+1396:          			else
+1397:          #endif	// MANSIGN
+1398:          #ifdef	SPCSIGN
+1399:          			if(flag & SPCSIGN)
+1400:          				pputc(' ');
+1401:          #endif
+1402:          #if defined(ALTERN) && defined(SIXTEEN)
+1403:          			else if((flag & (BASEM|ALTERN)) == (SIXTEEN|ALTERN)) {
+1404:          				pputc('0');
+1405:          #if	defined(HEXUPCASE) && defined(HEXLOWCASE)
+1406:          				pputc(flag & UPCASE ? 'X' : 'x');
+1407:          #elif defined(HEXUPCASE)
+1408:          				pputc('X');
+1409:          #else
+1410:          				pputc('x');
+1411:          #endif	// HEXUPCASE
+1412:          			}
+1413:          #endif	// ALTERN
+1414:          #ifdef	WIDTH
+1415:          			if(width)
+07E8  0100     MOVLB 0x0
+07EA  5198     MOVF width, W, BANKED
+07EC  0100     MOVLB 0x0
+07EE  1199     IORWF 0x99, W, BANKED
+07F0  B4D8     BTFSC STATUS, 2, ACCESS
+07F2  D027     BRA 0x842
+1416:          				do
+1417:          					pputc('0');
+07F4  C087     MOVFF sp, FSR2
+07F6  FFD9     NOP
+07F8  C088     MOVFF flash_data_buff, FSR2H
+07FA  FFDA     NOP
+07FC  0E30     MOVLW 0x30
+07FE  6EDF     MOVWF INDF2, ACCESS
+0800  0100     MOVLB 0x0
+0802  4B87     INFSNZ sp, F, BANKED
+0804  2B88     INCF flash_data_buff, F, BANKED
+1418:          				while(--width);
+0806  0100     MOVLB 0x0
+0808  0798     DECF width, F, BANKED
+080A  A0D8     BTFSS STATUS, 0, ACCESS
+080C  0799     DECF 0x99, F, BANKED
+080E  D7EC     BRA 0x7E8
+1419:          #endif	// WIDTH
+1420:          		} else
+1421:          #endif	//FILL
+1422:          		{
+1423:          #ifdef	WIDTH
+1424:          			if(width
+1425:          #ifdef	LEFT
+1426:          					&& !(flag & LEFT)
+1427:          #endif
+1428:          					)
+0810  0100     MOVLB 0x0
+0812  5198     MOVF width, W, BANKED
+0814  0100     MOVLB 0x0
+0816  1199     IORWF 0x99, W, BANKED
+0818  B4D8     BTFSC STATUS, 2, ACCESS
+081A  D013     BRA 0x842
+1429:          				do
+1430:          					pputc(' ');
+081C  C087     MOVFF sp, FSR2
+081E  FFD9     NOP
+0820  C088     MOVFF flash_data_buff, FSR2H
+0822  FFDA     NOP
+0824  0E20     MOVLW 0x20
+0826  6EDF     MOVWF INDF2, ACCESS
+0828  0100     MOVLB 0x0
+082A  4B87     INFSNZ sp, F, BANKED
+082C  2B88     INCF flash_data_buff, F, BANKED
+1431:          				while(--width);
+082E  0100     MOVLB 0x0
+0830  0798     DECF width, F, BANKED
+0832  A0D8     BTFSS STATUS, 0, ACCESS
+0834  0799     DECF 0x99, F, BANKED
+0836  0100     MOVLB 0x0
+0838  5198     MOVF width, W, BANKED
+083A  0100     MOVLB 0x0
+083C  1199     IORWF 0x99, W, BANKED
+083E  A4D8     BTFSS STATUS, 2, ACCESS
+0840  D7ED     BRA 0x81C
+1432:          #endif	// WIDTH
+1433:          #ifdef	MANSIGN
+1434:          			if(flag & MANSIGN)
+1435:          				putsign();
+1436:          #else
+1437:          #ifdef	NEGSIGN
+1438:          			if(flag & NEGSIGN)
+1439:          				pputc('-');
+1440:          #endif
+1441:          #endif	// MANSIGN
+1442:          #ifdef	SPCSIGN
+1443:          			else if(flag & SPCSIGN)
+1444:          				pputc(' ');
+1445:          #endif
+1446:          #ifdef	ALTERN
+1447:          #ifdef	EIGHT
+1448:          			if((flag & (BASEM|ALTERN)) == (EIGHT|ALTERN))
+1449:          				pputc('0');
+1450:          			else
+1451:          #endif	// EIGHT
+1452:          #ifdef	SIXTEEN
+1453:          #ifdef	BASEM
+1454:          			if((flag & (BASEM|ALTERN)) == (SIXTEEN|ALTERN)) {
+1455:          #else
+1456:          			if(flag & ALTERN) {
+1457:          #endif
+1458:          				pputc('0');
+1459:          #if	defined(HEXUPCASE) && defined(HEXLOWCASE)
+1460:          				pputc(flag & UPCASE ? 'X' : 'x');
+1461:          #elif defined(HEXUPCASE)
+1462:          				pputc('X');
+1463:          #else
+1464:          				pputc('x');
+1465:          #endif
+1466:          			}
+1467:          #endif	// SIXTEEN
+1468:          #endif	// ALTERN
+1469:          		}
+1470:          #if	defined(SIXTEEN) || defined(TEN) || defined(EIGHT) || defined(UNSIGN)
+1471:          #ifndef	PRECISION
+1472:          		prec = c;
+0842  C09A     MOVFF c, prec
+0844  F097     NOP
+1473:          #endif
+1474:          		while(prec--) {
+0846  D02F     BRA 0x8A6
+08A6  0100     MOVLB 0x0
+08A8  0797     DECF prec, F, BANKED
+08AA  0100     MOVLB 0x0
+08AC  2997     INCF prec, W, BANKED
+08AE  A4D8     BTFSS STATUS, 2, ACCESS
+08B0  D7CB     BRA 0x848
+1475:          #ifdef	MULTRAD
+1476:          			switch((unsigned char)(flag & BASEM))
+1477:          #endif
+1478:          			{
+1479:          
+1480:          #if	defined(TEN) || defined(UNSIGN)
+1481:          #ifdef	MULTRAD
+1482:          #ifdef	TEN
+1483:          		case TEN:
+1484:          #endif
+1485:          #ifdef	UNSIGN
+1486:          		case UNSIGN:
+1487:          #endif
+1488:          #endif	// MULTRAD
+1489:          				c = (val / dpowers[prec]) % 10 + '0';
+1490:          #ifdef	MULTRAD
+1491:          				break;
+1492:          #endif
+1493:          #endif	// TEN || UNSIGN
+1494:          
+1495:          #ifdef	SIXTEEN
+1496:          #ifdef	MULTRAD
+1497:          			case SIXTEEN:
+1498:          #endif
+1499:          			{
+1500:          				unsigned char idx = (val / hexpowers[prec]) & 0xF;
+0848  C095     MOVFF val, __pcstackBANK0
+084A  F080     NOP
+084C  C096     MOVFF 0x96, c
+084E  F081     NOP
+0850  0100     MOVLB 0x0
+0852  5197     MOVF prec, W, BANKED
+0854  0D02     MULLW 0x2
+0856  0E01     MOVLW 0x1
+0858  24F3     ADDWF PROD, W, ACCESS
+085A  6EF6     MOVWF TBLPTR, ACCESS
+085C  0E06     MOVLW 0x6
+085E  20F4     ADDWFC PRODH, W, ACCESS
+0860  6EF7     MOVWF TBLPTRH, ACCESS
+0862  0009     TBLRD*+
+0864  CFF5     MOVFF TABLAT, divisor
+0866  F082     NOP
+0868  000A     TBLRD*-
+086A  CFF5     MOVFF TABLAT, len
+086C  F083     NOP
+086E  ECDF     CALL 0xBBE, 0
+0870  F005     NOP
+0872  0100     MOVLB 0x0
+0874  5180     MOVF __pcstackBANK0, W, BANKED
+0876  0B0F     ANDLW 0xF
+0878  0100     MOVLB 0x0
+087A  6F91     MOVWF idx, BANKED
+1501:          #if	defined(HEXLOWCASE) && defined(HEXUPCASE)
+1502:          				c = (flag & UPCASE ? "0123456789ABCDEF" : "0123456789abcdef")[idx];
+1503:          #elif	defined(HEXUPCASE)
+1504:          				c = "0123456789ABCDEF"[idx];
+087C  0100     MOVLB 0x0
+087E  5191     MOVF idx, W, BANKED
+0880  0D01     MULLW 0x1
+0882  0E18     MOVLW 0x18
+0884  24F3     ADDWF PROD, W, ACCESS
+0886  6EF6     MOVWF TBLPTR, ACCESS
+0888  0E06     MOVLW 0x6
+088A  20F4     ADDWFC PRODH, W, ACCESS
+088C  6EF7     MOVWF TBLPTRH, ACCESS
+088E  0008     TBLRD*
+0890  CFF5     MOVFF TABLAT, c
+0892  F09A     NOP
+1505:          #else
+1506:          				c = "0123456789abcdef"[idx];
+1507:          #endif	//HEXCASE
+1508:          			}
+1509:          #ifdef	MULTRAD
+1510:          				break;
+1511:          #endif
+1512:          #endif
+1513:          
+1514:          #ifdef	EIGHT
+1515:          #ifdef	MULTRAD
+1516:          			case EIGHT:
+1517:          #endif	// MULTRAD
+1518:          				c = ((val / octpowers[prec]) & 07) + '0';
+1519:          #ifdef	MULTRAD
+1520:          				break;
+1521:          #endif	// MULTRAD
+1522:          #endif	// EIGHT
+1523:          			}
+1524:          			pputc(c);
+0894  C087     MOVFF sp, FSR2
+0896  FFD9     NOP
+0898  C088     MOVFF flash_data_buff, FSR2H
+089A  FFDA     NOP
+089C  C09A     MOVFF c, INDF2
+089E  FFDF     NOP
+08A0  0100     MOVLB 0x0
+08A2  4B87     INFSNZ sp, F, BANKED
+08A4  2B88     INCF flash_data_buff, F, BANKED
+1525:          		}
+1526:          #endif	// 16 or 10 or 8
+1527:          #ifdef	LEFT
+1528:          		if((flag & LEFT) && width > 0)
+1529:          			do
+1530:          				pputc(' ');
+1531:          			while(--width);
+1532:          #endif	// LEFT
+1533:          	}
+1534:          #ifdef	ANYFORMAT
+1535:          alldone:
+1536:          #endif	// ANYFORMAT
+1537:          #if	!defined(PRINTF) && (defined(SPRINTF) || defined(VSPRINTF))
+1538:          	*sp = 0;
+08CE  C087     MOVFF sp, FSR2
+08D0  FFD9     NOP
+08D2  C088     MOVFF flash_data_buff, FSR2H
+08D4  FFDA     NOP
+08D6  0E00     MOVLW 0x0
+08D8  6EDF     MOVWF INDF2, ACCESS
+08DA  0012     RETURN 0
+1539:          #endif
+1540:          	return ccnt;
+1541:          }
+1542:          
+---  C:/Program Files (x86)/Microchip/xc8/v1.41/sources/common/Umul16.c  --------------------------------
+1:             // 16 x 16 bit multiplication with 16 bit result
+2:             #ifdef _PIC18
+3:             #define _Has_hardware_multiply 1
+4:             #else
+5:             #define _Has_hardware_multiply 0
+6:             #endif
+7:             
+8:             #if defined(_PIC14E) || defined(_PIC14EX) || defined(_PIC18)
+9:             #define _Has_large_call_stack 1
+10:            #else
+11:            #define _Has_large_call_stack 0
+12:            #endif
+13:            
+14:            unsigned int
+15:            __wmul(unsigned int multiplier, unsigned int multiplicand)
+16:            {
+17:                    unsigned int product;
+18:            
+19:            #if _Has_hardware_multiply || _Has_large_call_stack
+20:            
+21:            #define LOWBYTE(x)  (*(unsigned char *)(&x))
+22:            #define HIGHBYTE(x) (*(((unsigned char *)(&x))+1))
+23:            
+24:            	// optimized to allow use of the 8 x 8 bit hardware multiply instruction
+25:            /*
+26:            a 16-bit multiply can be decomposed into the sum of three 8-bit multiplies
+27:                   a  b
+28:            *      c  d
+29:            -----------
+30:                 |   bd
+31:                 |ad  0
+32:                 |bc  0
+33:            +  ac| 0  0 (we ignore this intermediate product
+34:                         because it does not affect the low 16 bits of the result)
+35:            ===========
+36:             */
+37:                    product =  LOWBYTE(multiplier) * LOWBYTE(multiplicand);
+0DB0  0100     MOVLB 0x0
+0DB2  5180     MOVF __pcstackBANK0, W, BANKED
+0DB4  0100     MOVLB 0x0
+0DB6  0382     MULWF divisor, BANKED
+0DB8  CFF3     MOVFF PROD, counter
+0DBA  F084     NOP
+0DBC  CFF4     MOVFF PRODH, quotient
+0DBE  F085     NOP
+38:                    product += (LOWBYTE(multiplier) * HIGHBYTE(multiplicand)) << 8;
+0DC0  0100     MOVLB 0x0
+0DC2  5180     MOVF __pcstackBANK0, W, BANKED
+0DC4  0100     MOVLB 0x0
+0DC6  0383     MULWF len, BANKED
+0DC8  50F3     MOVF PROD, W, ACCESS
+0DCA  0100     MOVLB 0x0
+0DCC  2785     ADDWF quotient, F, BANKED
+39:                    product += (HIGHBYTE(multiplier) * LOWBYTE(multiplicand)) << 8;
+0DCE  0100     MOVLB 0x0
+0DD0  5181     MOVF c, W, BANKED
+0DD2  0100     MOVLB 0x0
+0DD4  0382     MULWF divisor, BANKED
+0DD6  50F3     MOVF PROD, W, ACCESS
+0DD8  0100     MOVLB 0x0
+0DDA  2785     ADDWF quotient, F, BANKED
+40:            
+41:            #else
+42:            
+43:            	product = 0;
+44:            	do {
+45:            		if(multiplier & 1)
+46:            			product += multiplicand;
+47:            		multiplicand <<= 1;
+48:            		multiplier >>= 1;
+49:            	} while(multiplier != 0);
+50:            
+51:            #endif
+52:                    return product;
+0DDC  C084     MOVFF counter, __pcstackBANK0
+0DDE  F080     NOP
+0DE0  C085     MOVFF quotient, c
+0DE2  F081     NOP
+0DE4  0012     RETURN 0
+53:            }
+0018  8060     BSF btemp, 0, ACCESS
+001A  CFD8     MOVFF STATUS, 0x4F
+001C  F04F     NOP
+001E  CFE8     MOVFF WREG, 0x50
+0020  F050     NOP
+0022  CFE0     MOVFF BSR, 0x51
+0024  F051     NOP
+0026  CFFA     MOVFF PCLATH, 0x52
+0028  F052     NOP
+002A  CFFB     MOVFF PCLATU, 0x53
+002C  F053     NOP
+002E  CFE9     MOVFF FSR0, 0x54
+0030  F054     NOP
+0032  CFEA     MOVFF FSR0H, 0x55
+0034  F055     NOP
+0036  CFE1     MOVFF FSR1, 0x56
+0038  F056     NOP
+003A  CFE2     MOVFF FSR1H, 0x57
+003C  F057     NOP
+003E  CFD9     MOVFF FSR2, 0x58
+0040  F058     NOP
+0042  CFDA     MOVFF FSR2H, 0x59
+0044  F059     NOP
+0046  CFF3     MOVFF PROD, 0x5A
+0048  F05A     NOP
+004A  CFF4     MOVFF PRODH, 0x5B
+004C  F05B     NOP
+004E  CFF6     MOVFF TBLPTR, 0x5C
+0050  F05C     NOP
+0052  CFF7     MOVFF TBLPTRH, 0x5D
+0054  F05D     NOP
+0056  CFF8     MOVFF TBLPTRU, 0x5E
+0058  F05E     NOP
+005A  CFF5     MOVFF TABLAT, 0x5F
+005C  F05F     NOP

@@ -1,4 +1,3 @@
-# **Code Coming Soon**
 # **PIC Programming Tutorial #20 - FLASH Read/Write**
 
 This demonstrates how to setup the FLASH to do a read and write and some assembler translation to c. Using the XC8 compiler with MPLAB X and a PIC18F4520.
